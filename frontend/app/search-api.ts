@@ -35,6 +35,40 @@ export interface RetrievalResult {
   timings_ms: Record<string, number>;
 }
 
+export interface ComparisonRequest {
+  query: string;
+  modes: [RetrievalMode, RetrievalMode];
+  scope: SearchRequest["scope"];
+}
+
+export interface ComparisonArm {
+  mode: RetrievalMode;
+  status: "ok" | "error";
+  result: RetrievalResult | null;
+  error_code: string | null;
+  elapsed_ms: number;
+  model_calls: number;
+  embedding_cache_hits: number;
+  known_embedding_input_tokens: number;
+  model_cost_usd: number | null;
+  reranking: {
+    status: string;
+    reason: string | null;
+    attempted_calls: number;
+  } | null;
+}
+
+export interface ComparisonResult {
+  query: string;
+  scope: SearchRequest["scope"];
+  snapshot_index: string;
+  arms: [ComparisonArm, ComparisonArm];
+  total_ms: number;
+  retrieval_settings: Record<string, unknown>;
+  reranking_settings: Record<string, unknown>;
+  execution: "sequential_shared_cache";
+}
+
 export interface AnswerResult {
   answer: string;
   citation_ids: string[];
@@ -272,7 +306,7 @@ export async function* readSearchEvents(
 
 async function post(
   path: string,
-  request: SearchRequest,
+  request: SearchRequest | ComparisonRequest,
   signal: AbortSignal,
 ): Promise<Response> {
   const response = await fetch(`${API_URL}${path}`, {
@@ -295,13 +329,18 @@ export async function retrieveSources(
   request: SearchRequest,
   signal: AbortSignal,
 ): Promise<RetrievalResult> {
-  const payload = object(
+  return retrieval(
     await (await post("/retrieval", request, signal)).json(),
+    request.mode,
   );
+}
+
+function retrieval(value: unknown, mode: RetrievalMode): RetrievalResult {
+  const payload = object(value);
   if (
     !Array.isArray(payload.hits) ||
     !numbers(payload.timings_ms) ||
-    payload.mode !== request.mode
+    payload.mode !== mode
   ) {
     throw new Error("invalid_response");
   }
@@ -312,11 +351,94 @@ export async function retrieveSources(
       hit.rank < 1 ||
       typeof hit.score !== "number" ||
       !Number.isFinite(hit.score) ||
-      hit.method !== request.mode
+      hit.method !== mode
     )
       throw new Error("invalid_response");
   }
   return payload as unknown as RetrievalResult;
+}
+
+export async function compareSources(
+  request: ComparisonRequest,
+  signal: AbortSignal,
+): Promise<ComparisonResult> {
+  if (request.modes.length !== 2 || request.modes[0] === request.modes[1])
+    throw new Error("invalid_request");
+  const payload = object(
+    await (await post("/retrieval/compare", request, signal)).json(),
+  );
+  const scope = object(payload.scope);
+  if (
+    payload.query !== request.query ||
+    typeof payload.snapshot_index !== "string" ||
+    !payload.snapshot_index ||
+    payload.execution !== "sequential_shared_cache" ||
+    !Array.isArray(payload.arms) ||
+    payload.arms.length !== 2 ||
+    typeof payload.total_ms !== "number" ||
+    !Number.isFinite(payload.total_ms) ||
+    payload.total_ms < 0 ||
+    scope.source_scope !== request.scope.source_scope ||
+    JSON.stringify(scope.permitted_guides) !==
+      JSON.stringify(request.scope.permitted_guides)
+  )
+    throw new Error("invalid_response");
+  object(payload.retrieval_settings);
+  object(payload.reranking_settings);
+  payload.arms.forEach((item, index) => {
+    const arm = object(item);
+    if (
+      arm.mode !== request.modes[index] ||
+      !["ok", "error"].includes(String(arm.status)) ||
+      !numbers({ elapsed: arm.elapsed_ms }) ||
+      !numbers({
+        calls: arm.model_calls,
+        hits: arm.embedding_cache_hits,
+        tokens: arm.known_embedding_input_tokens,
+      }) ||
+      !Number.isSafeInteger(arm.model_calls) ||
+      Number(arm.model_calls) > 2 ||
+      !Number.isSafeInteger(arm.embedding_cache_hits) ||
+      !Number.isSafeInteger(arm.known_embedding_input_tokens) ||
+      !(
+        arm.model_cost_usd === null ||
+        (arm.model_cost_usd === 0 && arm.model_calls === 0)
+      )
+    )
+      throw new Error("invalid_response");
+    if (arm.status === "ok") {
+      const result = retrieval(arm.result, request.modes[index]);
+      if (
+        arm.error_code !== null ||
+        result.hits.some(
+          (hit) =>
+            !request.scope.permitted_guides.includes(
+              hit.chunk.provenance.guide,
+            ),
+        )
+      )
+        throw new Error("invalid_response");
+    } else if (
+      arm.result !== null ||
+      typeof arm.error_code !== "string" ||
+      !arm.error_code
+    ) {
+      throw new Error("invalid_response");
+    }
+    if (arm.reranking !== null) {
+      const report = object(arm.reranking);
+      if (
+        !["applied", "fallback", "skipped", "failed"].includes(
+          String(report.status),
+        ) ||
+        !Number.isSafeInteger(report.attempted_calls) ||
+        Number(report.attempted_calls) < 0 ||
+        Number(report.attempted_calls) > 1
+      )
+        throw new Error("invalid_response");
+    }
+  });
+  return payload as unknown as ComparisonResult;
 }
 
 export async function streamAnswer(
