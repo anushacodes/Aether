@@ -5,8 +5,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from contextlib import closing
+from contextlib import ExitStack, closing
 from pathlib import Path
+from uuid import uuid4
 
 from botocore.exceptions import BotoCoreError, ClientError
 from opensearchpy import TransportError
@@ -24,6 +25,7 @@ from rag.corpus import (
 )
 from rag.embeddings import Embedder, embedding_manifest
 from rag.eval.dataset import load_dataset
+from rag.eval.runs import run_retrieval_evaluation
 from rag.indexing import bulk_index_chunks, ensure_index, load_chunks
 from rag.models import ChunkRecord, SearchRequest, SearchScope, SectionRecord, SubsetManifest
 from rag.pipeline import answer_question, retrieve
@@ -67,6 +69,24 @@ def build_parser() -> argparse.ArgumentParser:
     validate.add_argument("--dataset", type=Path, default=Path("data/eval/pilot.json"))
     validate.add_argument(
         "--allow-drafts", action="store_true", help="Inspect drafts without certifying labels"
+    )
+    evaluate = eval_operations.add_parser(
+        "retrieval", help="Capture rankings and reviewed-label metrics"
+    )
+    evaluate.add_argument("--dataset", type=Path, default=Path("data/eval/pilot.json"))
+    evaluate.add_argument(
+        "--sections", type=Path, default=Path("data/processed/pilot-sections.jsonl")
+    )
+    evaluate.add_argument("--chunks", type=Path, default=Path("data/processed/pilot-chunks.jsonl"))
+    evaluate.add_argument("--mode", choices=("bm25", "vector", "hybrid"), default="bm25")
+    evaluate.add_argument("--split", choices=("development", "held_out"), default="development")
+    evaluate.add_argument(
+        "--allow-drafts",
+        action="store_true",
+        help="Capture development rankings without quality claims",
+    )
+    evaluate.add_argument(
+        "--output", type=Path, help="New run directory; existing runs are never overwritten"
     )
     embed = commands.add_parser(
         "embed", help="Embed chunk records through Bedrock with a disk cache"
@@ -158,6 +178,51 @@ def _run_corpus(args: argparse.Namespace, config: PipelineConfig) -> None:
         )
 
 
+def _run_evaluation(args: argparse.Namespace, config: PipelineConfig) -> int:
+    dataset = load_dataset(args.dataset, allow_drafts=args.allow_drafts)
+    if args.operation == "validate":
+        print(
+            json.dumps(
+                {
+                    "dataset_id": dataset.dataset_id,
+                    "questions": len(dataset.questions),
+                    "review_status": dataset.review_status,
+                    "sha256": dataset.fingerprint(),
+                },
+                indent=2,
+            )
+        )
+        return 0
+    sections = [
+        SectionRecord.model_validate_json(line)
+        for line in args.sections.read_bytes().splitlines()
+        if line.strip()
+    ]
+    chunks = load_chunks(args.chunks)
+    output = args.output or Path("reports/runs") / f"retrieval-{uuid4().hex}"
+    with ExitStack() as stack:
+        client = stack.enter_context(create_search_client(config))
+        embedder = None
+        if args.mode != "bm25":
+            runtime = stack.enter_context(closing(create_bedrock_client(config)))
+            embedder = Embedder(config, runtime)
+        summary = run_retrieval_evaluation(
+            client,
+            config,
+            dataset,
+            sections,
+            chunks,
+            args.mode,
+            args.split,
+            output,
+            embedder=embedder,
+            allow_drafts=args.allow_drafts,
+        )
+    print(json.dumps(summary | {"output": str(output)}, indent=2))
+    outcomes = summary["outcomes"]
+    return 1 if isinstance(outcomes, dict) and outcomes.get("error", 0) else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run the selected command, returning useful errors for expected input/I/O failures."""
     parser = build_parser()
@@ -191,18 +256,7 @@ def main(argv: list[str] | None = None) -> int:
                     result = retrieved.model_dump(mode="json")
             print(json.dumps(result, indent=2))
         elif args.command == "eval":
-            dataset = load_dataset(args.dataset, allow_drafts=args.allow_drafts)
-            print(
-                json.dumps(
-                    {
-                        "dataset_id": dataset.dataset_id,
-                        "questions": len(dataset.questions),
-                        "review_status": dataset.review_status,
-                        "sha256": dataset.fingerprint(),
-                    },
-                    indent=2,
-                )
-            )
+            return _run_evaluation(args, config)
         elif args.command == "ask":
             request = SearchRequest(
                 query=args.query,
