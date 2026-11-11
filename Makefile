@@ -1,4 +1,4 @@
-.PHONY: setup help lint format test check
+.PHONY: setup help lint format test check search-up search-down search-check
 
 setup:
 	uv sync --locked
@@ -17,3 +17,12 @@ test:
 	uv run --locked pytest
 
 check: lint test
+
+search-up:
+	docker compose up -d --wait --wait-timeout 180 opensearch
+
+search-down:
+	docker compose down
+
+search-check:
+	uv run --locked s3-rag --config config.toml search check

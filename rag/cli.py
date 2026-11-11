@@ -7,6 +7,8 @@ import json
 import sys
 from pathlib import Path
 
+from opensearchpy import TransportError
+
 from rag import __version__
 from rag.chunking import chunk_inventory, chunk_section
 from rag.config import ChunkingConfig, PipelineConfig, load_config
@@ -18,6 +20,7 @@ from rag.corpus import (
     write_jsonl,
 )
 from rag.models import ChunkRecord, SectionRecord, SubsetManifest
+from rag.search_store import check_search_store, create_search_client
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -32,6 +35,11 @@ def build_parser() -> argparse.ArgumentParser:
     config.add_argument("--cloud", action="store_true", help="Require paid-call configuration")
     config.add_argument(
         "--require-bucket", action="store_true", help="Also require an artifact bucket"
+    )
+    search = commands.add_parser("search", help="Check the configured OpenSearch service")
+    search_operations = search.add_subparsers(dest="operation", required=True)
+    search_operations.add_parser(
+        "check", help="Check health, index/search a temporary document, then remove it"
     )
     corpus = commands.add_parser(
         "corpus", help="Fetch, inspect, and extract pinned source snapshots"
@@ -123,8 +131,15 @@ def main(argv: list[str] | None = None) -> int:
             if args.cloud or args.require_bucket:
                 config.require_cloud_settings(require_bucket=args.require_bucket)
             print("Configuration valid (no network requests made).")
+        elif args.command == "search":
+            with create_search_client(config) as client:
+                result = check_search_store(client)
+            print(json.dumps(result, indent=2))
         else:
             _run_corpus(args, config)
+    except TransportError as error:
+        print(f"Error: OpenSearch request failed: {error}", file=sys.stderr)
+        return 1
     except (OSError, ValueError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1
