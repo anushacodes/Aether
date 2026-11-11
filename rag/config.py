@@ -21,6 +21,7 @@ ENV_FIELDS = {
     "RAG_EMBEDDING_MODEL_ID": ("models", "embedding_model_id"),
     "RAG_EMBEDDING_DIMENSIONS": ("models", "embedding_dimensions"),
     "RAG_GENERATION_MODEL_ID": ("models", "generation_model_id"),
+    "RAG_EVALUATOR_MODEL_ID": ("evaluation", "judge_model_id"),
     "RAG_SEARCH_INDEX": ("index", "name"),
     "RAG_ADMIN_TOKEN": ("ingestion", "admin_token"),
     "RAG_ALLOWED_ORIGINS": ("api", "allowed_origins"),
@@ -137,6 +138,17 @@ class WorkflowConfig(Record):
     assessment_max_tokens: int = Field(default=256, ge=64, le=512)
 
 
+class EvaluationConfig(Record):
+    """Keep the offline judge explicit, serial, and separate from the answer model."""
+
+    judge_model_id: str | None = None
+    max_samples: int = Field(default=5, ge=1, le=120)
+    max_model_calls: int = Field(default=50, ge=1, le=500)
+    max_output_tokens: int = Field(default=2048, ge=1, le=4096)
+    timeout_seconds: int = Field(default=300, ge=1, le=3600)
+    cache_path: Path = Path("data/cache/evaluator.sqlite3")
+
+
 class PipelineConfig(Record):
     """The resolved configuration passed explicitly to each pipeline stage."""
 
@@ -151,6 +163,7 @@ class PipelineConfig(Record):
     ingestion: IngestionConfig = Field(default_factory=IngestionConfig)
     workflow: WorkflowConfig = Field(default_factory=WorkflowConfig)
     cloud: CloudConfig = Field(default_factory=CloudConfig)
+    evaluation: EvaluationConfig = Field(default_factory=EvaluationConfig)
     opensearch_url: HttpUrl = HttpUrl("http://localhost:9200")
 
     def require_cloud_settings(
