@@ -11,7 +11,7 @@ from typing import Literal, Self
 
 from pydantic import Field, HttpUrl, SecretStr, model_validator
 
-from rag.models import Record
+from rag.models import Digest, Record
 
 ENV_FIELDS = {
     "RAG_AWS_REGION": ("cloud", "region"),
@@ -23,6 +23,7 @@ ENV_FIELDS = {
     "RAG_GENERATION_MODEL_ID": ("models", "generation_model_id"),
     "RAG_EVALUATOR_MODEL_ID": ("evaluation", "judge_model_id"),
     "RAG_ENRICHMENT_MODEL_ID": ("enrichment", "model_id"),
+    "RAG_RERANK_MODEL_ARN": ("reranking", "model_arn"),
     "RAG_SEARCH_INDEX": ("index", "name"),
     "RAG_ADMIN_TOKEN": ("ingestion", "admin_token"),
     "RAG_ALLOWED_ORIGINS": ("api", "allowed_origins"),
@@ -66,6 +67,7 @@ class RetrievalConfig(Record):
     context_passages: int = Field(default=5, ge=1, le=20)
     context_budget: int = Field(default=4000, gt=0)
     rrf_constant: int = Field(default=60, gt=0)
+    metadata_boost: float = Field(default=0, ge=0, le=5, allow_inf_nan=False)
 
 
 class CloudConfig(Record):
@@ -96,6 +98,7 @@ class IndexConfig(Record):
     """Name the local corpus index independently of OpenSearch connectivity."""
 
     name: str = Field(default="s3-rag-active", pattern=r"^[a-z0-9][a-z0-9._-]*$", max_length=100)
+    enrichment_fingerprint: Digest | None = None
 
 
 class PublicationConfig(Record):
@@ -115,6 +118,7 @@ class ApiConfig(Record):
     max_concurrent_searches: int = Field(default=4, ge=1, le=8)
     requests_per_minute: int = Field(default=30, ge=1, le=120)
     stream_timeout_seconds: int = Field(default=90, ge=5, le=180)
+    comparison_timeout_seconds: int = Field(default=90, ge=5, le=180)
 
 
 class IngestionConfig(Record):
@@ -163,6 +167,18 @@ class EnrichmentConfig(Record):
     repair_attempts: Literal[0, 1] = 1
 
 
+class RerankingConfig(Record):
+    """Opt into one bounded rerank request per retrieval pass, with an explicit failure policy."""
+
+    enabled: bool = False
+    model_arn: str | None = None
+    max_candidates: int = Field(default=20, ge=2, le=50)
+    max_total_characters: int = Field(default=32_000, ge=1, le=200_000)
+    max_document_characters: int = Field(default=8000, ge=1, le=50_000)
+    timeout_seconds: float = Field(default=10, ge=1, le=30, allow_inf_nan=False)
+    failure_policy: Literal["error", "original_order"] = "error"
+
+
 class PipelineConfig(Record):
     """The resolved configuration passed explicitly to each pipeline stage."""
 
@@ -179,6 +195,7 @@ class PipelineConfig(Record):
     cloud: CloudConfig = Field(default_factory=CloudConfig)
     evaluation: EvaluationConfig = Field(default_factory=EvaluationConfig)
     enrichment: EnrichmentConfig = Field(default_factory=EnrichmentConfig)
+    reranking: RerankingConfig = Field(default_factory=RerankingConfig)
     opensearch_url: HttpUrl = HttpUrl("http://localhost:9200")
 
     def require_cloud_settings(

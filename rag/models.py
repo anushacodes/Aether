@@ -184,6 +184,21 @@ class RetrievedHit(Record):
     method: Literal["bm25", "vector", "hybrid"]
     rank: int = Field(ge=1)
     score: float = Field(allow_inf_nan=False)
+    rerank_score: float | None = Field(default=None, allow_inf_nan=False)
+
+
+class RerankingReport(Record):
+    """Preserve cost-relevant stage outcomes without treating relevance as confidence."""
+
+    status: Literal["applied", "fallback", "skipped", "failed"]
+    model_arn: str | None
+    input_count: int = Field(ge=0)
+    candidate_ids: list[Identifier]
+    input_characters: int = Field(ge=0)
+    attempted_calls: int = Field(ge=0, le=1)
+    reason: str | None = None
+    usage_status: Literal["not_reported", "not_called"]
+    model_cost_usd: None = None
 
 
 class RetrievalResult(Record):
@@ -192,6 +207,8 @@ class RetrievalResult(Record):
     hits: list[RetrievedHit]
     mode: Literal["bm25", "vector", "hybrid"]
     timings_ms: dict[str, Duration]
+    reranking: RerankingReport | None = None
+    snapshot_index: Identifier | None = None
 
 
 class SearchScope(Record):
@@ -213,6 +230,63 @@ class SearchRequest(Record):
     workflow: bool = False
 
 
+class ComparisonRequest(Record):
+    """Compare exactly two supported modes with one unchanged question and scope."""
+
+    query: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
+    scope: SearchScope = Field(default_factory=SearchScope)
+    modes: list[Literal["bm25", "vector", "hybrid"]] = Field(
+        default_factory=lambda: ["bm25", "hybrid"], min_length=2, max_length=2
+    )
+
+    @model_validator(mode="after")
+    def distinct_modes(self) -> Self:
+        """Reject duplicate work before search admission or model setup."""
+        if len(set(self.modes)) != 2:
+            raise ValueError("Choose two distinct retrieval modes")
+        return self
+
+
+class ComparisonArm(Record):
+    """Keep a failed mode alongside successful evidence and its actual attempted work."""
+
+    mode: Literal["bm25", "vector", "hybrid"]
+    status: Literal["ok", "error"]
+    result: RetrievalResult | None = None
+    error_code: str | None = None
+    elapsed_ms: Duration
+    model_calls: int = Field(ge=0)
+    embedding_cache_hits: int = Field(ge=0)
+    known_embedding_input_tokens: int = Field(ge=0)
+    model_cost_usd: float | None = Field(default=None, ge=0, allow_inf_nan=False)
+    reranking: RerankingReport | None = None
+
+    @model_validator(mode="after")
+    def consistent_outcome(self) -> Self:
+        """A failed mode cannot masquerade as successful retrieval or known paid cost."""
+        if self.status == "ok":
+            if self.result is None or self.result.mode != self.mode or self.error_code is not None:
+                raise ValueError("Successful comparison requires matching retrieval results")
+        elif self.result is not None or not self.error_code:
+            raise ValueError("Failed comparison requires an error code without results")
+        if self.model_cost_usd is not None and (self.model_calls or self.model_cost_usd != 0):
+            raise ValueError("Only zero-call comparison cost is known without configured prices")
+        return self
+
+
+class ComparisonResult(Record):
+    """Describe live observations without inferring relevance or a winning configuration."""
+
+    query: Nonempty
+    scope: SearchScope
+    snapshot_index: Identifier
+    arms: list[ComparisonArm] = Field(min_length=2, max_length=2)
+    total_ms: Duration
+    retrieval_settings: dict[str, object]
+    reranking_settings: dict[str, object]
+    execution: Literal["sequential_shared_cache"] = "sequential_shared_cache"
+
+
 class WorkflowStep(Record):
     """A bounded assessment decision, not an assertion that every claim is supported."""
 
@@ -221,6 +295,7 @@ class WorkflowStep(Record):
     decision: Literal["answer", "retry", "insufficient"]
     missing_evidence: str
     context_chunk_ids: list[Identifier] = Field(default_factory=list)
+    reranking: RerankingReport | None = None
 
 
 class WorkflowReport(Record):
@@ -243,6 +318,8 @@ class AnswerResult(Record):
     timings_ms: dict[str, Duration]
     usage_tokens: dict[str, Annotated[int, Field(ge=0)]] = Field(default_factory=dict)
     workflow: WorkflowReport | None = None
+    reranking: RerankingReport | None = None
+    snapshot_index: Identifier | None = None
 
     @model_validator(mode="after")
     def known_citations(self) -> Self:
