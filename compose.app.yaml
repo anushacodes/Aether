@@ -1,0 +1,71 @@
+name: s3-rag-app
+
+services:
+  opensearch:
+    extends:
+      file: compose.yaml
+      service: opensearch
+    ports: !override
+      - "127.0.0.1:${RAG_SEARCH_PORT:-19200}:9200"
+
+  api:
+    image: s3-rag-backend:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    init: true
+    mem_limit: 512m
+    environment:
+      RAG_OPENSEARCH_URL: http://opensearch:9200
+      RAG_ADMIN_TOKEN: ${RAG_ADMIN_TOKEN:-}
+      RAG_ALLOWED_ORIGINS: '["http://localhost:${RAG_FRONTEND_PORT:-13000}","http://127.0.0.1:${RAG_FRONTEND_PORT:-13000}"]'
+    ports:
+      - "127.0.0.1:${RAG_API_PORT:-18000}:8000"
+    volumes:
+      - rag-data:/app/data
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  worker:
+    image: s3-rag-backend:local
+    pull_policy: never
+    init: true
+    mem_limit: 512m
+    command: ["s3-rag", "--config", "config.toml", "worker"]
+    environment:
+      RAG_OPENSEARCH_URL: http://opensearch:9200
+    volumes:
+      - rag-data:/app/data
+    depends_on:
+      api:
+        condition: service_healthy
+
+  frontend:
+    image: s3-rag-frontend:local
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_RAG_API_URL: ${RAG_BROWSER_API_URL:-http://localhost:${RAG_API_PORT:-18000}}
+    init: true
+    mem_limit: 256m
+    ports:
+      - "127.0.0.1:${RAG_FRONTEND_PORT:-13000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+volumes:
+  opensearch-data:
+  rag-data:
