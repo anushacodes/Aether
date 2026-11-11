@@ -20,6 +20,7 @@ ENV_FIELDS = {
     "RAG_EMBEDDING_MODEL_ID": ("models", "embedding_model_id"),
     "RAG_EMBEDDING_DIMENSIONS": ("models", "embedding_dimensions"),
     "RAG_GENERATION_MODEL_ID": ("models", "generation_model_id"),
+    "RAG_SEARCH_INDEX": ("index", "name"),
 }
 
 
@@ -67,22 +68,41 @@ class CloudConfig(Record):
     development_model_budget_usd: float | None = Field(default=None, gt=0, allow_inf_nan=False)
 
 
+class EmbeddingConfig(Record):
+    """Bound model work and keep the reusable vector cache on local disk."""
+
+    cache_path: Path = Path("data/cache/embeddings.sqlite3")
+    concurrency: int = Field(default=2, ge=1, le=8)
+    max_requests_per_run: int = Field(default=500, ge=1, le=500)
+
+
+class IndexConfig(Record):
+    """Name the local corpus index independently of OpenSearch connectivity."""
+
+    name: str = Field(default="s3-rag-pilot", pattern=r"^[a-z0-9][a-z0-9._-]*$", max_length=100)
+
+
 class PipelineConfig(Record):
     """The resolved configuration passed explicitly to each pipeline stage."""
 
     chunking: ChunkingConfig = Field(default_factory=ChunkingConfig)
     retrieval: RetrievalConfig = Field(default_factory=RetrievalConfig)
     models: ModelConfig = Field(default_factory=ModelConfig)
+    embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
+    index: IndexConfig = Field(default_factory=IndexConfig)
     cloud: CloudConfig = Field(default_factory=CloudConfig)
     opensearch_url: HttpUrl = HttpUrl("http://localhost:9200")
 
-    def require_cloud_settings(self, *, require_bucket: bool = False) -> None:
+    def require_cloud_settings(
+        self, *, require_bucket: bool = False, require_generation: bool = True
+    ) -> None:
         """Reject missing cloud choices without contacting AWS or discovering credentials."""
         required = {
             "RAG_AWS_REGION": self.cloud.region,
-            "RAG_GENERATION_MODEL_ID": self.models.generation_model_id,
             "RAG_DEVELOPMENT_MODEL_BUDGET_USD": self.cloud.development_model_budget_usd,
         }
+        if require_generation:
+            required["RAG_GENERATION_MODEL_ID"] = self.models.generation_model_id
         if require_bucket:
             required["RAG_ARTIFACT_BUCKET"] = self.cloud.artifact_bucket
         missing = [

@@ -21,4 +21,13 @@ normalize = true
 # generation_model_id must be selected after checking Bedrock access/pricing.
 
 [cloud]
-# region, profile, artifact_bucket, and development_model_budget_usd are unset.
+region = "us-east-1"
+# profile, artifact_bucket, and development_model_budget_usd are unset.
+
+[embedding]
+cache_path = "data/cache/embeddings.sqlite3"
+concurrency = 2
+max_requests_per_run = 500
+
+[index]
+name = "s3-rag-pilot"
