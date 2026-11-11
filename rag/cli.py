@@ -34,6 +34,7 @@ from rag.enrichment import run_enrichment
 from rag.eval.answers import AnswerBinding, prepare_answers
 from rag.eval.comparison import compare_retrieval_runs, render_comparison_markdown
 from rag.eval.dataset import load_dataset
+from rag.eval.experiments import PRESETS, preflight_experiment, preset_manifest, resolve_experiment
 from rag.eval.pooling import pool_candidates
 from rag.eval.runs import run_retrieval_evaluation
 from rag.indexing import bulk_index_chunks, ensure_index, load_chunks
@@ -139,6 +140,9 @@ def build_parser() -> argparse.ArgumentParser:
         "eval", help="Validate and evaluate independent quality labels"
     )
     eval_operations = evaluation.add_subparsers(dest="operation", required=True)
+    eval_operations.add_parser(
+        "experiments", help="List the versioned B0–B5 treatments without calling services"
+    )
     validate = eval_operations.add_parser("validate", help="Check labels and prevent split leakage")
     validate.add_argument("--dataset", type=Path, default=Path("data/eval/pilot.json"))
     validate.add_argument(
@@ -181,7 +185,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--sections", type=Path, default=Path("data/processed/pilot-sections.jsonl")
     )
     evaluate.add_argument("--chunks", type=Path, default=Path("data/processed/pilot-chunks.jsonl"))
-    evaluate.add_argument("--mode", choices=("bm25", "vector", "hybrid"), default="bm25")
+    evaluate.add_argument("--mode", choices=("bm25", "vector", "hybrid"))
+    evaluate.add_argument("--experiment", choices=[preset.identifier for preset in PRESETS])
+    evaluate.add_argument(
+        "--enriched-index", type=Path, help="Successful index.json binding for B3/B5 only"
+    )
     evaluate.add_argument("--split", choices=("development", "held_out"), default="development")
     evaluate.add_argument(
         "--allow-drafts",
@@ -412,7 +420,12 @@ def _run_index(args: argparse.Namespace, config: PipelineConfig) -> None:
 
 
 def _run_evaluation(args: argparse.Namespace, config: PipelineConfig) -> int:
+    if args.operation == "experiments":
+        print(json.dumps(preset_manifest(), indent=2))
+        return 0
     dataset = load_dataset(args.dataset, allow_drafts=args.allow_drafts)
+    if args.operation == "retrieval" and args.split == "held_out":
+        dataset.require_reviewed()
     if args.operation == "validate":
         print(
             json.dumps(
@@ -484,10 +497,24 @@ def _run_evaluation(args: argparse.Namespace, config: PipelineConfig) -> int:
         return 1 if failed else 0
     chunks = load_chunks(args.chunks)
     output = args.output or Path("reports/runs") / f"retrieval-{uuid4().hex}"
+    selection = None
+    if args.experiment is not None:
+        if args.mode is not None:
+            raise ValueError("Use --experiment or --mode, not both")
+        selection = resolve_experiment(args.experiment, config, chunks, args.enriched_index)
+        config = selection.config
+        mode = selection.preset.mode
+    else:
+        if args.enriched_index is not None:
+            raise ValueError("--enriched-index requires a B3/B5 experiment")
+        mode = args.mode or "bm25"
     with ExitStack() as stack:
         client = stack.enter_context(create_search_client(config))
+        if selection is not None:
+            selection = preflight_experiment(client, selection, chunks)
+            config = selection.config
         embedder = None
-        if args.mode != "bm25":
+        if mode != "bm25":
             runtime = stack.enter_context(closing(create_bedrock_client(config)))
             embedder = Embedder(config, runtime)
         summary = run_retrieval_evaluation(
@@ -496,11 +523,12 @@ def _run_evaluation(args: argparse.Namespace, config: PipelineConfig) -> int:
             dataset,
             sections,
             chunks,
-            args.mode,
+            mode,
             args.split,
             output,
             embedder=embedder,
             allow_drafts=args.allow_drafts,
+            experiment=selection.provenance if selection is not None else None,
         )
     print(json.dumps(summary | {"output": str(output)}, indent=2))
     outcomes = summary["outcomes"]
