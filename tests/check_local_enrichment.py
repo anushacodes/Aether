@@ -152,7 +152,12 @@ def check() -> dict[str, object]:
                         == 0
                     )
                 assert len(json.loads(captured.getvalue())["hits"]) == 2
+                # A fresh CI cluster has no published pilot; own this negative-control index.
+                baseline_name = f"s3-rag-preset-baseline-{uuid4().hex}"
+                owned.append(baseline_name)
                 baseline = config.model_copy(deep=True)
+                baseline.index.name = baseline_name
+                ensure_index(client, baseline)
                 baseline.retrieval.metadata_boost = 2
                 try:
                     bm25_search(client, baseline, "inferredneedle", scope)
@@ -191,8 +196,6 @@ def check() -> dict[str, object]:
                 assert settings[read.index.name]["settings"]["index"]["blocks"]["write"] == "true"
 
                 # Exercise every declared treatment over identical real source records.
-                baseline_name = f"s3-rag-preset-baseline-{uuid4().hex}"
-                owned.append(baseline_name)
                 base = config.model_copy(deep=True)
                 base.index.name = baseline_name
                 base.reranking.model_arn = (
