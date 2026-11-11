@@ -220,6 +220,7 @@ class AnswerResult(Record):
     status: Literal["answered", "insufficient_evidence", "failed"]
     evidence: list[ChunkRecord]
     timings_ms: dict[str, Duration]
+    usage_tokens: dict[str, Annotated[int, Field(ge=0)]] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def known_citations(self) -> Self:

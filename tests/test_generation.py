@@ -9,7 +9,14 @@ from unittest.mock import Mock
 import pytest
 
 from rag.config import PipelineConfig, RetrievalConfig
-from rag.generation import assemble_context, converse_text, generation_message
+from rag.generation import (
+    CitationValidationError,
+    assemble_context,
+    converse_text,
+    finalize_answer,
+    generate_answer,
+    generation_message,
+)
 from rag.models import ChunkRecord, RetrievedHit
 
 
@@ -50,3 +57,24 @@ def test_truncated_model_output_is_not_accepted_as_a_complete_answer() -> None:
     }
     with pytest.raises(ValueError, match="max_tokens"):
         converse_text(client, config, "What happens to old versions?", context)
+
+
+def test_invented_or_missing_citations_cannot_be_validated() -> None:
+    record = json.loads(Path("tests/fixtures/records.json").read_text(encoding="utf-8"))["chunk"]
+    chunk = ChunkRecord.model_validate(record)
+    context = assemble_context(
+        [RetrievedHit(chunk=chunk, method="bm25", rank=1, score=1)], RetrievalConfig()
+    )
+    for text in ("An uncited claim.", "A claim [invented-source]."):
+        with pytest.raises(CitationValidationError):
+            finalize_answer(text, context, {})
+    result = finalize_answer(f"A source-backed claim [{chunk.chunk_id}].", context, {})
+    assert result.status == "answered"
+    assert result.citation_ids == [chunk.chunk_id]
+
+
+def test_empty_evidence_skips_the_model_without_requiring_cloud_settings() -> None:
+    client = Mock()
+    result = generate_answer(client, PipelineConfig(), "Unsupported question", [], {})
+    assert result.status == "insufficient_evidence"
+    client.converse.assert_not_called()
