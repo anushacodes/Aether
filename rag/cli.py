@@ -23,9 +23,16 @@ from rag.corpus import (
 )
 from rag.embeddings import Embedder, embedding_manifest
 from rag.indexing import bulk_index_chunks, ensure_index, load_chunks
-from rag.models import ChunkRecord, SearchScope, SectionRecord, SubsetManifest
-from rag.pipeline import retrieve
+from rag.models import ChunkRecord, SearchRequest, SearchScope, SectionRecord, SubsetManifest
+from rag.pipeline import answer_question, retrieve
 from rag.search_store import check_search_store, create_search_client
+
+
+def _add_question_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("query")
+    parser.add_argument("--guide", action="append", choices=("s3-userguide", "s3-api"))
+    parser.add_argument("--corpus-id")
+    parser.add_argument("--mode", choices=("bm25", "vector", "hybrid"), default="bm25")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -47,10 +54,9 @@ def build_parser() -> argparse.ArgumentParser:
         "check", help="Check health, index/search a temporary document, then remove it"
     )
     query = search_operations.add_parser("query", help="Retrieve original source passages")
-    query.add_argument("query")
-    query.add_argument("--guide", action="append", choices=("s3-userguide", "s3-api"))
-    query.add_argument("--corpus-id")
-    query.add_argument("--mode", choices=("bm25", "vector", "hybrid"), default="bm25")
+    _add_question_arguments(query)
+    ask = commands.add_parser("ask", help="Answer from retrieved passages with source citations")
+    _add_question_arguments(ask)
     embed = commands.add_parser(
         "embed", help="Embed chunk records through Bedrock with a disk cache"
     )
@@ -170,6 +176,19 @@ def main(argv: list[str] | None = None) -> int:
                         client, config, args.query, scope, args.mode, embedder
                     ).model_dump(mode="json")
             print(json.dumps(result, indent=2))
+        elif args.command == "ask":
+            request = SearchRequest(
+                query=args.query,
+                mode=args.mode,
+                scope=SearchScope(
+                    permitted_guides=args.guide or ["s3-userguide", "s3-api"],
+                    corpus_id=args.corpus_id,
+                ),
+            )
+            with create_search_client(config) as client:
+                answer = answer_question(client, config, request)
+            print(answer.model_dump_json(indent=2))
+            return 1 if answer.status == "failed" else 0
         elif args.command == "embed":
             chunks = load_chunks(args.chunks)
             embedder = Embedder(config, create_bedrock_client(config))

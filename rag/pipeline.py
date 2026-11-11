@@ -8,10 +8,12 @@ from typing import Literal
 
 from opensearchpy import OpenSearch
 
+from rag.aws_clients import BedrockRuntime, create_bedrock_client
 from rag.config import PipelineConfig
 from rag.embeddings import Embedder
 from rag.fusion import reciprocal_rank_fusion
-from rag.models import RetrievalResult, RetrievedHit, SearchRequest, SearchScope
+from rag.generation import INSUFFICIENT_RESPONSE, generate_answer
+from rag.models import AnswerResult, RetrievalResult, RetrievedHit, SearchRequest, SearchScope
 from rag.retrieval import bm25_search, vector_search
 
 
@@ -75,3 +77,27 @@ def retrieve(
         raise ValueError(f"Unknown retrieval mode: {mode!r}")
     timings["retrieval_total"] = (perf_counter() - started) * 1000
     return RetrievalResult(hits=hits, mode=mode, timings_ms=timings)
+
+
+def answer_question(
+    client: OpenSearch,
+    config: PipelineConfig,
+    request: SearchRequest,
+    runtime: BedrockRuntime | None = None,
+    embedder: Embedder | None = None,
+) -> AnswerResult:
+    """Use the shared retrieval path and create a generation client only when evidence exists."""
+    if request.mode != "bm25" and embedder is None:
+        embedder = Embedder(config, create_bedrock_client(config))
+    retrieved = retrieve(client, config, request.query, request.scope, request.mode, embedder)
+    if not retrieved.hits:
+        return AnswerResult(
+            answer=INSUFFICIENT_RESPONSE,
+            citation_ids=[],
+            status="insufficient_evidence",
+            evidence=[],
+            timings_ms=retrieved.timings_ms,
+        )
+    if runtime is None:
+        runtime = create_bedrock_client(config, require_generation=True)
+    return generate_answer(runtime, config, request.query, retrieved.hits, retrieved.timings_ms)
