@@ -16,11 +16,13 @@ from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import Response, StreamingResponse
 
 from rag import __version__
+from rag.api.ingestion import create_ingestion_router
 from rag.api.limits import RequestLimitError, SearchLimiter
 from rag.api.stream import streaming_response
 from rag.aws_clients import create_bedrock_client
 from rag.config import ConfigurationError, PipelineConfig, load_config
 from rag.embeddings import Embedder
+from rag.indexing import resolve_read_config, verify_index
 from rag.models import AnswerResult, RetrievalResult, SearchRequest
 from rag.pipeline import answer_question, retrieve
 from rag.search_store import create_search_client
@@ -68,12 +70,13 @@ def create_app(config: PipelineConfig | None = None) -> FastAPI:
 
     application = FastAPI(title="S3 Knowledge Engine", version=__version__, lifespan=lifespan)
     application.state.config = settings
+    application.include_router(create_ingestion_router(settings, get_search_client))
     limiter = SearchLimiter(settings.api)
     application.add_middleware(
         CORSMiddleware,
         allow_origins=settings.api.allowed_origins,
         allow_methods=["GET", "POST"],
-        allow_headers=["Content-Type", "Authorization"],
+        allow_headers=["Content-Type", "Authorization", "Idempotency-Key"],
         expose_headers=["X-Request-ID"],
     )
 
@@ -96,8 +99,10 @@ def create_app(config: PipelineConfig | None = None) -> FastAPI:
             health = client.cluster.health(request_timeout=5)
             if health["status"] not in {"green", "yellow"}:
                 raise HTTPException(503, detail={"code": "search_unavailable"})
-            count = client.count(index=settings.index.name)["count"]
-            if count == 0:
+            pinned = resolve_read_config(client, settings)
+            verify_index(client, pinned)
+            count = client.count(index=pinned.index.name)["count"]
+            if count == 0 and not client.indices.exists_alias(name=settings.index.name):
                 raise HTTPException(503, detail={"code": "corpus_not_ready"})
             return {
                 "status": "ready",
@@ -107,6 +112,8 @@ def create_app(config: PipelineConfig | None = None) -> FastAPI:
             }
         except TransportError as error:
             raise HTTPException(503, detail={"code": "search_unavailable"}) from error
+        except ValueError as error:
+            raise HTTPException(503, detail={"code": "invalid_index_configuration"}) from error
 
     @application.post("/retrieval", response_model=RetrievalResult)
     def retrieve_passages(
