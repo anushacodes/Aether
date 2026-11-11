@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import sqlite3
 from collections.abc import Callable, Iterator
@@ -134,7 +135,22 @@ def build_snapshot(
     store = SnapshotStore(config.publication.state_path)
     existing = store.get(snapshot_id)
     if existing is not None:
-        if existing.build_id != manifest["build_id"]:
+        encoded = existing.manifest_path.read_bytes()
+        if hashlib.sha256(encoded).hexdigest() != existing.manifest_sha256:
+            raise ValueError("Snapshot manifest hash mismatch")
+        prior = json.loads(encoded)
+        # Older manifests also fingerprinted query settings. Only build inputs define reuse.
+        build_fields = (
+            "corpus_ids",
+            "chunk_ids",
+            "sources",
+            "chunking",
+            "embedding",
+            "has_vectors",
+        )
+        if not isinstance(prior, dict) or prior.get("schema_version") not in {1, 2}:
+            raise ValueError("Unsupported snapshot manifest version")
+        if any(prior.get(key) != manifest[key] for key in build_fields):
             raise ValueError("A snapshot ID cannot be reused for different build inputs")
         return existing
     if client.indices.exists(index=staged.index.name):

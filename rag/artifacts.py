@@ -9,7 +9,7 @@ from pathlib import Path
 
 from rag.config import PipelineConfig
 from rag.corpus import write_jsonl
-from rag.generation import GROUNDING_INSTRUCTIONS, PROMPT_VERSION
+from rag.generation import ASSESSMENT_PROMPT_VERSION, GROUNDING_INSTRUCTIONS, PROMPT_VERSION
 from rag.models import AnswerResult, ChunkRecord, SearchRequest
 
 
@@ -21,6 +21,8 @@ def pipeline_fingerprint(config: PipelineConfig) -> str:
         "models": config.models.model_dump(mode="json"),
         "generation": config.generation.model_dump(mode="json"),
         "prompt_version": PROMPT_VERSION,
+        "assessment_prompt_version": ASSESSMENT_PROMPT_VERSION,
+        "workflow": config.workflow.model_dump(mode="json"),
     }
     return hashlib.sha256(json.dumps(settings, sort_keys=True).encode("utf-8")).hexdigest()
 
@@ -37,8 +39,7 @@ def build_manifest(
         chunk.provenance.source_id: chunk.provenance.model_dump(mode="json") for chunk in chunks
     }
     identity = {
-        "schema_version": 1,
-        "pipeline_fingerprint": pipeline_fingerprint(config),
+        "schema_version": 2,
         "corpus_ids": sorted(
             {chunk.corpus_id for chunk in chunks} | ({corpus_id} if corpus_id else set())
         ),
@@ -72,10 +73,17 @@ def save_answer_run(
         "pipeline_fingerprint": pipeline_fingerprint(config),
         "prompt_version": PROMPT_VERSION,
         "system_prompt": GROUNDING_INSTRUCTIONS,
-        "model_called": bool(result.usage_tokens),
+        "model_called": result.workflow.model_calls > 0
+        if result.workflow
+        else bool(result.usage_tokens),
         "generation_model_id": config.models.generation_model_id,
         "generation_parameters": config.generation.model_dump(mode="json"),
         "context_passages": [chunk.model_dump(mode="json") for chunk in result.evidence],
         "created_at": datetime.now(UTC).isoformat(),
     }
+    if result.workflow is not None:
+        from rag.workflow import ASSESSMENT_INSTRUCTIONS
+
+        record["workflow_settings"] = config.workflow.model_dump(mode="json")
+        record["assessment_system_prompt"] = ASSESSMENT_INSTRUCTIONS
     write_jsonl(output / "answer.json", [record])
