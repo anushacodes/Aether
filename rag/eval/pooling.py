@@ -34,7 +34,7 @@ def pool_candidates(
     """Combine compatible saved runs; pooled text is a review input, never ground truth."""
     if not runs or len({run.resolve() for run in runs}) != len(runs):
         raise ValueError("Candidate pooling requires distinct saved run directories")
-    questions = [question for question in dataset.questions if question.split == split]
+    questions = dataset.questions_for_split(split)
     if not questions:
         raise ValueError(f"Dataset contains no questions in split {split!r}")
     pools: dict[str, QuestionPool] = {

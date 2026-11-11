@@ -74,6 +74,8 @@ def prepare_answers(
     identifiers = [binding.question_id for binding in bindings]
     if len(set(identifiers)) != len(identifiers) or not set(identifiers).issubset(questions):
         raise ValueError("Answer bindings must reference distinct known dataset questions")
+    if any(questions[identifier].split == "candidate" for identifier in identifiers):
+        raise ValueError("Candidate questions need split assignment before answer evaluation")
     rows: list[PreparedAnswer] = []
     for binding in bindings:
         question = questions[binding.question_id]

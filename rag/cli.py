@@ -28,6 +28,7 @@ from rag.corpus import (
     write_jsonl,
 )
 from rag.embeddings import Embedder, embedding_manifest
+from rag.enriched_index import build_enriched_index, load_enriched_inputs
 from rag.enrichment import run_enrichment
 from rag.eval.answers import AnswerBinding, prepare_answers
 from rag.eval.dataset import load_dataset
@@ -179,6 +180,12 @@ def build_parser() -> argparse.ArgumentParser:
     publish.add_argument("--raw-dir", type=Path, default=Path("data/raw"))
     publish.add_argument("--with-embeddings", action="store_true")
     index_operations.add_parser("snapshots", help="List retained publication history")
+    enriched = index_operations.add_parser("enriched", help="Build an isolated metadata experiment")
+    enriched.add_argument("--run", type=Path, required=True, help="Complete metadata run directory")
+    enriched.add_argument(
+        "--output", type=Path, required=True, help="New experiment record directory"
+    )
+    enriched.add_argument("--with-embeddings", action="store_true")
     rollback = index_operations.add_parser(
         "rollback", help="Restore a retained published snapshot without rebuilding"
     )
@@ -304,12 +311,17 @@ def _run_worker(args: argparse.Namespace, config: PipelineConfig) -> int:
 def _run_index(args: argparse.Namespace, config: PipelineConfig) -> None:
     """Keep staging and publication separate from mutable development index commands."""
     if (
-        args.operation not in {"publish", "snapshots", "rollback"}
+        args.operation not in {"publish", "snapshots", "rollback", "enriched"}
         and config.index.name == config.publication.alias
     ):
         raise ValueError(
             "Use 'index publish' for the active alias; mutable builds need a separate index"
         )
+    if args.operation == "enriched":
+        # Validate files/intent before even discovering cloud credentials for an optional embedder.
+        load_enriched_inputs(args.run)
+        if args.output.exists():
+            raise FileExistsError(f"Experiment output already exists: {args.output}")
     with ExitStack() as stack:
         client = stack.enter_context(create_search_client(config))
         if args.operation == "snapshots":
@@ -329,7 +341,11 @@ def _run_index(args: argparse.Namespace, config: PipelineConfig) -> None:
             if args.with_embeddings:
                 runtime = stack.enter_context(closing(create_bedrock_client(config)))
                 embedder = Embedder(config, runtime)
-            if args.operation == "publish":
+            if args.operation == "enriched":
+                result = build_enriched_index(
+                    client, config, args.run, args.output, embedder=embedder
+                )
+            elif args.operation == "publish":
                 base_revision = active_index(client, config.publication.alias)
                 snapshot = build_snapshot(
                     client,

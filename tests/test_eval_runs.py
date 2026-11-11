@@ -13,7 +13,8 @@ from rag.chunking import chunk_section
 from rag.config import PipelineConfig
 from rag.eval.dataset import EvaluationPassage, load_dataset
 from rag.eval.runs import run_retrieval_evaluation
-from rag.models import RetrievalResult, RetrievedHit, SectionRecord
+from rag.models import RerankingReport, RetrievalResult, RetrievedHit, SectionRecord
+from rag.reranking import RerankingError
 
 
 def test_eval_persists_failures_and_never_scores_draft_labels(
@@ -24,6 +25,8 @@ def test_eval_persists_failures_and_never_scores_draft_labels(
     config.chunking.size = 150
     config.chunking.overlap = 20
     config.retrieval.context_passages = 1
+    config.index.enrichment_fingerprint = "a" * 64
+    config.reranking.enabled = True
     fixture = json.loads(Path("tests/fixtures/records.json").read_text(encoding="utf-8"))["section"]
     section = SectionRecord.model_validate(fixture)
     chunks = chunk_section(section, config.chunking)
@@ -57,8 +60,28 @@ def test_eval_persists_failures_and_never_scores_draft_labels(
                 ],
                 mode="bm25",
                 timings_ms={"retrieval_total": 1},
+                reranking=RerankingReport(
+                    status="applied",
+                    model_arn=None,
+                    input_count=2,
+                    candidate_ids=[chunks[0].chunk_id, chunks[-1].chunk_id],
+                    input_characters=100,
+                    attempted_calls=1,
+                    usage_status="not_reported",
+                ),
             ),
-            ValueError("Search failed"),
+            RerankingError(
+                RerankingReport(
+                    status="failed",
+                    model_arn=None,
+                    input_count=2,
+                    candidate_ids=[chunks[0].chunk_id, chunks[-1].chunk_id],
+                    input_characters=100,
+                    attempted_calls=1,
+                    usage_status="not_reported",
+                    reason="provider_error",
+                )
+            ),
         ]
     )
     monkeypatch.setattr("rag.eval.runs.retrieve", retrieval)
@@ -88,3 +111,38 @@ def test_eval_persists_failures_and_never_scores_draft_labels(
     assert summary["outcomes"] == {"ok": 1, "error": 1}
     assert summary["scored"] == 0
     assert json.loads((output / "summary.json").read_text(encoding="utf-8"))["questions"] == 2
+    assert summary["cache_conditions"]["model_requests"] == 2
+    assert summary["cache_conditions"]["reranking_requests"] == 2
+    assert rows[1]["reranking"]["status"] == "failed"
+    assert summary["reranking"]["model_cost_usd"] is None
+    assert summary["inputs"]["enrichment_fingerprint"] == "a" * 64
+    retrieval.side_effect = None
+    retrieval.return_value = RetrievalResult(
+        hits=[], mode="bm25", timings_ms={"retrieval_total": 1}
+    )
+    config.index.enrichment_fingerprint = "b" * 64
+    changed = run_retrieval_evaluation(
+        Mock(),
+        config,
+        dataset,
+        [section],
+        chunks,
+        "bm25",
+        "development",
+        tmp_path / "changed",
+        allow_drafts=True,
+    )
+    assert changed["configuration_id"] != summary["configuration_id"]
+    config.reranking.failure_policy = "original_order"
+    fallback = run_retrieval_evaluation(
+        Mock(),
+        config,
+        dataset,
+        [section],
+        chunks,
+        "bm25",
+        "development",
+        tmp_path / "fallback",
+        allow_drafts=True,
+    )
+    assert fallback["configuration_id"] != changed["configuration_id"]

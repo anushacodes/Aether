@@ -49,7 +49,7 @@ class EvaluationQuestion(Record):
     reference_answer: str
     reference_passage_ids: list[Identifier]
     expected_answerability: Literal["answerable", "unanswerable"]
-    split: Literal["development", "held_out"]
+    split: Literal["candidate", "development", "held_out"]
     group_id: Identifier | None = None
     review_status: Literal["draft", "reviewed"] = "draft"
     unanswerable_reason: str | None = None
@@ -85,8 +85,8 @@ class EvaluationDataset(Record):
         identifiers: set[str] = set()
         if len({passage.passage_id for passage in self.passages}) != len(self.passages):
             raise ValueError("Evaluation passage IDs must be unique")
-        groups: dict[str, str] = {}
-        texts: dict[str, str] = {}
+        groups: dict[str, set[str]] = {}
+        texts: dict[str, set[str]] = {}
         for question in self.questions:
             if question.question_id in identifiers:
                 raise ValueError(f"Duplicate evaluation question ID: {question.question_id}")
@@ -95,10 +95,21 @@ class EvaluationDataset(Record):
             for key, values in ((normalized, texts), (question.group_id, groups)):
                 if key is None:
                     continue
-                if key in values and values[key] != question.split:
+                partitions = values.setdefault(key, set())
+                partitions.add(question.split)
+                # Unassigned candidates can share a known family. They must not erase
+                # its development exposure when a later question is assigned held out.
+                if {"development", "held_out"} <= partitions:
                     raise ValueError("Equivalent questions/evidence groups cannot cross splits")
-                values[key] = question.split
         return self
+
+    def questions_for_split(
+        self, split: Literal["development", "held_out"]
+    ) -> list[EvaluationQuestion]:
+        """Keep unassigned candidates out of runs, including direct Python callers."""
+        if split not in {"development", "held_out"}:
+            raise ValueError("Candidate questions need split assignment before evaluation")
+        return [question for question in self.questions if question.split == split]
 
     def require_reviewed(self) -> None:
         """Refuse benchmark scoring until the dataset and every question have human review."""
@@ -108,6 +119,8 @@ class EvaluationDataset(Record):
             raise ValueError(
                 "Evaluation labels require human review; drafts are not benchmark truth"
             )
+        if any(question.split == "candidate" for question in self.questions):
+            raise ValueError("Candidate questions need split assignment before evaluation")
 
         known_passages = {passage.passage_id for passage in self.passages}
         for question in self.questions:

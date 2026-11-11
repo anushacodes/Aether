@@ -13,6 +13,7 @@ from typing import Literal, NotRequired, TypedDict
 from botocore.exceptions import BotoCoreError, ClientError
 from opensearchpy import OpenSearch, TransportError
 
+from rag.aws_clients import RerankRuntime
 from rag.config import PipelineConfig
 from rag.embeddings import Embedder
 from rag.eval.dataset import EvaluationDataset, EvaluationQuestion
@@ -22,6 +23,7 @@ from rag.generation import assemble_context
 from rag.indexing import resolve_read_config
 from rag.models import ChunkRecord, SearchScope, SectionRecord
 from rag.pipeline import retrieve
+from rag.reranking import RerankingError
 
 
 class EvaluationContext(TypedDict):
@@ -58,6 +60,7 @@ class EvaluationRow(TypedDict):
     covered_passages: NotRequired[list[str]]
     error_type: NotRequired[str]
     error: NotRequired[str]
+    reranking: NotRequired[dict[str, object] | None]
 
 
 def _score(
@@ -138,11 +141,13 @@ def run_retrieval_evaluation(
     *,
     embedder: Embedder | None = None,
     allow_drafts: bool = False,
+    rerank_runtime: RerankRuntime | None = None,
+    experiment: dict[str, object] | None = None,
 ) -> dict[str, object]:
     """Save per-question JSONL and a complete summary; drafts remain explicitly unscored."""
     if not allow_drafts or split == "held_out":
         dataset.require_reviewed()
-    questions = [question for question in dataset.questions if question.split == split]
+    questions = dataset.questions_for_split(split)
     if not questions:
         raise ValueError(f"Dataset contains no questions in split {split!r}")
     if any(chunk.corpus_id != dataset.corpus_id for chunk in chunks):
@@ -152,7 +157,7 @@ def run_retrieval_evaluation(
         question.review_status == "reviewed" for question in questions
     )
     identity = {
-        "schema_version": 2,
+        "schema_version": 3,
         "dataset_sha256": dataset.fingerprint(),
         "mode": mode,
         "split": split,
@@ -160,11 +165,20 @@ def run_retrieval_evaluation(
         "chunking": config.chunking.model_dump(mode="json"),
         "models": config.models.model_dump(mode="json"),
         "retrieval": config.retrieval.model_dump(mode="json"),
+        "reranking": config.reranking.model_dump(mode="json"),
+        "enrichment_fingerprint": config.index.enrichment_fingerprint,
     }
     configuration_id = hashlib.sha256(
         json.dumps(identity, sort_keys=True).encode("utf-8")
     ).hexdigest()
     output.mkdir(parents=True, exist_ok=False)
+    if experiment is not None:
+        # A preset label annotates effective settings, whose identity is already hashed above.
+        # Persist it before model work so interrupted runs retain their declared treatment.
+        (output / "experiment.json").write_text(
+            json.dumps(experiment | {"configuration_id": configuration_id}, indent=2) + "\n",
+            encoding="utf-8",
+        )
     rows: list[EvaluationRow] = []
     pinned_config: PipelineConfig | None = None
     known_passages = {passage.passage_id for passage in dataset.passages}
@@ -190,7 +204,15 @@ def run_retrieval_evaluation(
                 # Failures before the first successful pin remain per-question outcomes.
                 candidate_config = pinned_config or resolve_read_config(client, config)
                 row["index"] = candidate_config.index.name
-                result = retrieve(client, candidate_config, question.query, scope, mode, embedder)
+                result = retrieve(
+                    client,
+                    candidate_config,
+                    question.query,
+                    scope,
+                    mode,
+                    embedder,
+                    **({"rerank_runtime": rerank_runtime} if rerank_runtime is not None else {}),
+                )
                 pinned_config = candidate_config
                 identifiers = [hit.chunk.chunk_id for hit in result.hits]
                 if any(identifier not in mapping.complete for identifier in identifiers):
@@ -204,6 +226,9 @@ def run_retrieval_evaluation(
                     {
                         "hits": [hit.model_dump(mode="json") for hit in result.hits],
                         "timings_ms": result.timings_ms,
+                        "reranking": result.reranking.model_dump(mode="json")
+                        if result.reranking
+                        else None,
                         "latency_ms": result.timings_ms["retrieval_total"],
                         "metrics": metrics,
                         "metric_status": str(metrics["status"]),
@@ -226,6 +251,8 @@ def run_retrieval_evaluation(
                     }
                 )
             except (TransportError, BotoCoreError, ClientError, ValueError) as error:
+                if isinstance(error, RerankingError):
+                    row["reranking"] = error.report.model_dump(mode="json")
                 row.update(
                     {
                         "status": "error",
@@ -241,20 +268,38 @@ def run_retrieval_evaluation(
     run_fingerprint = hashlib.sha256(
         json.dumps(identity, sort_keys=True).encode("utf-8")
     ).hexdigest()
+    reranking_reports = [row["reranking"] for row in rows if row.get("reranking") is not None]
+    reranking_calls = sum(int(report["attempted_calls"]) for report in reranking_reports)
     summary = _summary(rows) | {
         "configuration_id": configuration_id,
         "run_fingerprint": run_fingerprint,
         "inputs": identity,
         "finished_at": datetime.now(UTC).isoformat(),
         "reviewed_labels": reviewed,
-        "cache_conditions": {"requests": embedder.request_count, "cache_hits": embedder.cache_hits}
-        if embedder
-        else {"model_requests": 0},
+        "execution_conditions": {
+            "query_concurrency": 1,
+            "cache_state": "reused_without_reset",
+            "latency_scope": "successful_retrieval_only",
+            "generation_included": False,
+        },
+        "cache_conditions": {
+            "embedding_requests": embedder.request_count if embedder else 0,
+            "embedding_cache_hits": embedder.cache_hits if embedder else 0,
+            "reranking_requests": reranking_calls,
+            "model_requests": (embedder.request_count if embedder else 0) + reranking_calls,
+        },
+        "reranking": {
+            "outcomes": dict(Counter(str(report["status"]) for report in reranking_reports)),
+            "usage_status": "not_reported" if reranking_calls else "not_called",
+            "model_cost_usd": None,
+        },
         "metric_units": {
             "hit_mrr_ndcg": "chunks mapped to fully covered graded source spans",
             "recall": "distinct positive source passages; full-span coverage required",
         },
     }
+    if experiment is not None:
+        summary["experiment"] = experiment | {"configuration_id": configuration_id}
     (output / "summary.json").write_text(
         json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8"
     )
