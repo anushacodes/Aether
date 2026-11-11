@@ -87,17 +87,26 @@ def answer_question(
     embedder: Embedder | None = None,
 ) -> AnswerResult:
     """Use the shared retrieval path and create a generation client only when evidence exists."""
-    if request.mode != "bm25" and embedder is None:
-        embedder = Embedder(config, create_bedrock_client(config))
-    retrieved = retrieve(client, config, request.query, request.scope, request.mode, embedder)
-    if not retrieved.hits:
-        return AnswerResult(
-            answer=INSUFFICIENT_RESPONSE,
-            citation_ids=[],
-            status="insufficient_evidence",
-            evidence=[],
-            timings_ms=retrieved.timings_ms,
-        )
-    if runtime is None:
-        runtime = create_bedrock_client(config, require_generation=True)
-    return generate_answer(runtime, config, request.query, retrieved.hits, retrieved.timings_ms)
+    owns_runtime = False
+    try:
+        if request.mode != "bm25" and embedder is None:
+            if runtime is None:
+                runtime = create_bedrock_client(config, require_generation=True)
+                owns_runtime = True
+            embedder = Embedder(config, runtime)
+        retrieved = retrieve(client, config, request.query, request.scope, request.mode, embedder)
+        if not retrieved.hits:
+            return AnswerResult(
+                answer=INSUFFICIENT_RESPONSE,
+                citation_ids=[],
+                status="insufficient_evidence",
+                evidence=[],
+                timings_ms=retrieved.timings_ms,
+            )
+        if runtime is None:
+            runtime = create_bedrock_client(config, require_generation=True)
+            owns_runtime = True
+        return generate_answer(runtime, config, request.query, retrieved.hits, retrieved.timings_ms)
+    finally:
+        if owns_runtime and runtime is not None:
+            runtime.close()

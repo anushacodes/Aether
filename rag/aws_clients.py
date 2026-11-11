@@ -29,6 +29,10 @@ class BedrockRuntime(Protocol):
         """Return the SDK event stream for incremental generation."""
         ...
 
+    def close(self) -> None:
+        """Release the SDK connection pool when its owning workflow finishes."""
+        ...
+
 
 def create_aws_session(config: PipelineConfig) -> boto3.Session:
     """Use an explicit profile/region or the caller's ordinary AWS credential chain."""

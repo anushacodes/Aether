@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from contextlib import closing
 from pathlib import Path
 
 from botocore.exceptions import BotoCoreError, ClientError
@@ -169,12 +170,15 @@ def main(argv: list[str] | None = None) -> int:
                         permitted_guides=args.guide or ["s3-userguide", "s3-api"],
                         corpus_id=args.corpus_id,
                     )
-                    embedder = None
-                    if args.mode != "bm25":
-                        embedder = Embedder(config, create_bedrock_client(config))
-                    result = retrieve(
-                        client, config, args.query, scope, args.mode, embedder
-                    ).model_dump(mode="json")
+                    if args.mode == "bm25":
+                        retrieved = retrieve(client, config, args.query, scope, args.mode)
+                    else:
+                        with closing(create_bedrock_client(config)) as runtime:
+                            embedder = Embedder(config, runtime)
+                            retrieved = retrieve(
+                                client, config, args.query, scope, args.mode, embedder
+                            )
+                    result = retrieved.model_dump(mode="json")
             print(json.dumps(result, indent=2))
         elif args.command == "ask":
             request = SearchRequest(
@@ -191,8 +195,9 @@ def main(argv: list[str] | None = None) -> int:
             return 1 if answer.status == "failed" else 0
         elif args.command == "embed":
             chunks = load_chunks(args.chunks)
-            embedder = Embedder(config, create_bedrock_client(config))
-            embedder.embed_chunks(chunks)
+            with closing(create_bedrock_client(config)) as runtime:
+                embedder = Embedder(config, runtime)
+                embedder.embed_chunks(chunks)
             write_jsonl(args.output, embedding_manifest(chunks, config))
             print(
                 json.dumps(
@@ -213,9 +218,8 @@ def main(argv: list[str] | None = None) -> int:
                     chunks = load_chunks(args.chunks)
                     vectors = None
                     if args.with_embeddings:
-                        vectors = Embedder(config, create_bedrock_client(config)).embed_chunks(
-                            chunks
-                        )
+                        with closing(create_bedrock_client(config)) as runtime:
+                            vectors = Embedder(config, runtime).embed_chunks(chunks)
                     count = bulk_index_chunks(client, config, chunks, vectors)
                     result = {
                         "index": config.index.name,
