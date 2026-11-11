@@ -141,9 +141,12 @@ class Embedder:
         with closing(response["body"]) as body:
             payload = json.loads(body.read())
         vector = validate_embedding(payload.get("embedding"), model.embedding_dimensions)
+        input_tokens = payload.get("inputTextTokenCount")
+        if isinstance(input_tokens, bool) or not isinstance(input_tokens, int) or input_tokens < 0:
+            raise ValueError("Embedding response must report nonnegative input token usage")
         self.cache.put(key, vector)
         with self._counter_lock:
-            self.input_tokens += payload.get("inputTextTokenCount", 0)
+            self.input_tokens += input_tokens
         return vector
 
     def embed_chunks(

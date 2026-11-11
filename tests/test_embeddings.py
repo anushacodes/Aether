@@ -70,6 +70,13 @@ def test_embedder_reuses_cache_and_never_sends_blank_or_incompatible_output(tmp_
         embedder.embed_text("different input")
     key = embedding_cache_key("different input", config.models, "raw-v1")
     assert embedder.cache.get(key, 256) is None
+    client.invoke_model.return_value = {
+        "body": io.BytesIO(json.dumps({"embedding": [0.1] * 256}).encode())
+    }
+    with pytest.raises(ValueError, match="token usage"):
+        embedder.embed_text("unreported usage")
+    key = embedding_cache_key("unreported usage", config.models, "raw-v1")
+    assert embedder.cache.get(key, 256) is None
 
 
 def test_bulk_embedding_bounds_requests_and_reuses_them_in_a_new_process(tmp_path: Path) -> None:
@@ -99,7 +106,11 @@ def test_bulk_embedding_bounds_requests_and_reuses_them_in_a_new_process(tmp_pat
         time.sleep(0.01)
         with lock:
             active -= 1
-        return {"body": io.BytesIO(json.dumps({"embedding": [0.1] * 256}).encode())}
+        return {
+            "body": io.BytesIO(
+                json.dumps({"embedding": [0.1] * 256, "inputTextTokenCount": 1}).encode()
+            )
+        }
 
     client = Mock()
     client.invoke_model.side_effect = respond
