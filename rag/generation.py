@@ -89,23 +89,48 @@ def generation_message(question: str, context: AssembledContext) -> str:
     )
 
 
-def converse_text(
-    client: BedrockRuntime, config: PipelineConfig, question: str, context: AssembledContext
-) -> GeneratedText:
-    """Generate a bounded answer through Converse, rejecting interrupted or filtered output."""
+def generation_arguments(
+    config: PipelineConfig, question: str, context: AssembledContext
+) -> dict[str, object]:
+    """Use identical grounding and limits for complete and streamed model requests."""
     question = SearchRequest(query=question).query
     if not context.evidence:
         raise ValueError("Generation requires original source evidence")
     config.require_cloud_settings()
-    response = client.converse(
-        modelId=config.models.generation_model_id,
-        system=[{"text": GROUNDING_INSTRUCTIONS}],
-        messages=[{"role": "user", "content": [{"text": generation_message(question, context)}]}],
-        inferenceConfig={
+    return {
+        "modelId": config.models.generation_model_id,
+        "system": [{"text": GROUNDING_INSTRUCTIONS}],
+        "messages": [
+            {"role": "user", "content": [{"text": generation_message(question, context)}]}
+        ],
+        "inferenceConfig": {
             "maxTokens": config.generation.max_output_tokens,
             "temperature": config.generation.temperature,
         },
-    )
+    }
+
+
+def generation_usage(value: object) -> dict[str, int]:
+    """Require actual reported token counts instead of inventing zero-cost usage."""
+    if not isinstance(value, dict):
+        raise ValueError("Generation response is missing token usage")
+    result: dict[str, int] = {}
+    for source, target in (
+        ("inputTokens", "generation_input"),
+        ("outputTokens", "generation_output"),
+    ):
+        count = value.get(source)
+        if isinstance(count, bool) or not isinstance(count, int) or count < 0:
+            raise ValueError("Generation token usage must contain nonnegative integers")
+        result[target] = count
+    return result
+
+
+def converse_text(
+    client: BedrockRuntime, config: PipelineConfig, question: str, context: AssembledContext
+) -> GeneratedText:
+    """Generate a bounded answer through Converse, rejecting interrupted or filtered output."""
+    response = client.converse(**generation_arguments(config, question, context))
     if response.get("stopReason") not in {"end_turn", "stop_sequence"}:
         raise ValueError(f"Generation did not finish normally: {response.get('stopReason')}")
     text = "\n".join(
@@ -113,8 +138,8 @@ def converse_text(
     ).strip()
     if not text:
         raise ValueError("Generation returned no answer text")
-    usage = response.get("usage", {})
-    return GeneratedText(text, usage.get("inputTokens", 0), usage.get("outputTokens", 0))
+    usage = generation_usage(response.get("usage"))
+    return GeneratedText(text, usage["generation_input"], usage["generation_output"])
 
 
 def finalize_answer(
