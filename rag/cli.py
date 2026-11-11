@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from contextlib import ExitStack, closing
 from pathlib import Path
 from uuid import uuid4
@@ -28,10 +29,13 @@ from rag.embeddings import Embedder, embedding_manifest
 from rag.eval.dataset import load_dataset
 from rag.eval.runs import run_retrieval_evaluation
 from rag.indexing import bulk_index_chunks, ensure_index, load_chunks
+from rag.ingestion import ingestion_catalog, submit_ingestion
+from rag.jobs import IngestionRequest, JobStore
 from rag.models import ChunkRecord, SearchRequest, SearchScope, SectionRecord, SubsetManifest
 from rag.pipeline import answer_question, retrieve
 from rag.publication import active_index, build_snapshot, publish_snapshot
 from rag.search_store import check_search_store, create_search_client
+from rag.worker import WorkerBusyError, run_one
 
 
 def _add_question_arguments(parser: argparse.ArgumentParser) -> None:
@@ -49,6 +53,27 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("--config", type=Path, help="Optional TOML pipeline configuration")
     commands = parser.add_subparsers(dest="command")
+    worker = commands.add_parser("worker", help="Run the single local durable ingestion worker")
+    worker.add_argument(
+        "--once", action="store_true", help="Execute one queued/recoverable job and exit"
+    )
+    jobs = commands.add_parser("jobs", help="Submit and inspect local durable corpus mutations")
+    job_operations = jobs.add_subparsers(dest="operation", required=True)
+    job_operations.add_parser("catalog", help="Show the active revision and approved section IDs")
+    submit = job_operations.add_parser("submit")
+    submit.add_argument(
+        "--key", required=True, help="Unique idempotency key; reuse only for the same intent"
+    )
+    submit.add_argument(
+        "--base-revision",
+        required=True,
+        help="Concrete snapshot name, or 'none' for first publication",
+    )
+    submit.add_argument("--catalog-id", default="pilot")
+    submit.add_argument("--delete-section", action="append", default=[])
+    submit.add_argument("--with-embeddings", action="store_true")
+    for operation in ("status", "cancel", "replay"):
+        job_operations.add_parser(operation).add_argument("job_id")
     config = commands.add_parser("config", help="Validate configuration without making AWS calls")
     config.add_argument("--cloud", action="store_true", help="Require paid-call configuration")
     config.add_argument(
@@ -191,6 +216,46 @@ def _run_corpus(args: argparse.Namespace, config: PipelineConfig) -> None:
         )
 
 
+def _run_jobs(args: argparse.Namespace, config: PipelineConfig) -> None:
+    """Local CLI access relies on filesystem access; HTTP requires administrator auth."""
+    if args.operation == "catalog":
+        with create_search_client(config) as client:
+            print(json.dumps(ingestion_catalog(client, config), indent=2))
+        return
+    store = JobStore(config.publication.state_path)
+    if args.operation == "submit":
+        request = IngestionRequest(
+            operation="delete" if args.delete_section else "rebuild",
+            catalog_id=args.catalog_id,
+            base_revision=None if args.base_revision == "none" else args.base_revision,
+            with_embeddings=args.with_embeddings,
+            remove_section_ids=args.delete_section,
+        )
+        with create_search_client(config) as client:
+            result = submit_ingestion(client, config, store, args.key, request)
+    elif args.operation == "cancel":
+        result = store.cancel(args.job_id)
+    elif args.operation == "replay":
+        result = store.replay(args.job_id, config.ingestion.max_attempts)
+    else:
+        result = store.get(args.job_id)
+        if result is None:
+            raise ValueError("Job not found")
+    print(result.model_dump_json(indent=2))
+
+
+def _run_worker(args: argparse.Namespace, config: PipelineConfig) -> int:
+    with create_search_client(config) as client:
+        while True:
+            result = run_one(client, config)
+            if result is not None:
+                print(result.model_dump_json(indent=2), flush=True)
+            if args.once:
+                return 1 if result is not None and result.status == "failed" else 0
+            if result is None:
+                time.sleep(2)
+
+
 def _run_index(args: argparse.Namespace, config: PipelineConfig) -> None:
     """Keep staging and publication separate from mutable development index commands."""
     if args.operation != "publish" and config.index.name == config.publication.alias:
@@ -287,7 +352,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     try:
         config = load_config(args.config)
-        if args.command == "config":
+        if args.command == "jobs":
+            _run_jobs(args, config)
+        elif args.command == "worker":
+            return _run_worker(args, config)
+        elif args.command == "config":
             if args.cloud or args.require_bucket:
                 config.require_cloud_settings(require_bucket=args.require_bucket)
             print("Configuration valid (no network requests made).")
@@ -354,7 +423,7 @@ def main(argv: list[str] | None = None) -> int:
     except (BotoCoreError, ClientError) as error:
         print(f"Error: AWS request failed: {error}", file=sys.stderr)
         return 1
-    except (OSError, ValueError) as error:
+    except (OSError, ValueError, KeyError, WorkerBusyError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1
     except KeyboardInterrupt:

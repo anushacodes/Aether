@@ -1,4 +1,4 @@
-.PHONY: setup help lint format test check search-up search-down search-check api
+.PHONY: setup help lint format test check search-up search-down search-check api worker ingestion-check
 
 setup:
 	uv sync --locked
@@ -29,3 +29,9 @@ search-check:
 
 api:
 	uv run --locked uvicorn rag.api.app:app --host 127.0.0.1 --port 8000 --reload --reload-dir rag
+
+worker:
+	uv run --locked s3-rag --config config.toml worker
+
+ingestion-check:
+	uv run --locked python tests/check_local_ingestion.py
