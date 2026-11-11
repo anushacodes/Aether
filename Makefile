@@ -1,4 +1,4 @@
-.PHONY: setup help lint format test check search-up search-down search-check api worker ingestion-check workflow-check
+.PHONY: setup help lint format test check search-up search-down search-check api worker ingestion-check workflow-check snapshot-check
 
 setup:
 	uv sync --locked
@@ -38,3 +38,6 @@ ingestion-check:
 
 workflow-check:
 	uv run --locked python tests/check_local_workflow.py
+
+snapshot-check:
+	uv run --locked python tests/check_local_snapshots.py

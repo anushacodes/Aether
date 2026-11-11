@@ -35,6 +35,7 @@ from rag.models import ChunkRecord, SearchRequest, SearchScope, SectionRecord, S
 from rag.pipeline import answer_question, retrieve
 from rag.publication import active_index, build_snapshot, publish_snapshot
 from rag.search_store import check_search_store, create_search_client
+from rag.snapshots import retained_snapshots, rollback_snapshot
 from rag.worker import WorkerBusyError, run_one
 from rag.workflow_limits import WorkflowBudgetError
 
@@ -145,6 +146,12 @@ def build_parser() -> argparse.ArgumentParser:
     publish.add_argument("--subset", type=Path, default=Path("data/manifests/pilot.json"))
     publish.add_argument("--raw-dir", type=Path, default=Path("data/raw"))
     publish.add_argument("--with-embeddings", action="store_true")
+    index_operations.add_parser("snapshots", help="List retained publication history")
+    rollback = index_operations.add_parser(
+        "rollback", help="Restore a retained published snapshot without rebuilding"
+    )
+    rollback.add_argument("snapshot_id")
+    rollback.add_argument("--base-revision", required=True, help="Expected active concrete index")
     corpus = commands.add_parser(
         "corpus", help="Fetch, inspect, and extract pinned source snapshots"
     )
@@ -264,13 +271,26 @@ def _run_worker(args: argparse.Namespace, config: PipelineConfig) -> int:
 
 def _run_index(args: argparse.Namespace, config: PipelineConfig) -> None:
     """Keep staging and publication separate from mutable development index commands."""
-    if args.operation != "publish" and config.index.name == config.publication.alias:
+    if (
+        args.operation not in {"publish", "snapshots", "rollback"}
+        and config.index.name == config.publication.alias
+    ):
         raise ValueError(
             "Use 'index publish' for the active alias; mutable builds need a separate index"
         )
     with ExitStack() as stack:
         client = stack.enter_context(create_search_client(config))
-        if args.operation == "create":
+        if args.operation == "snapshots":
+            result = {
+                "alias": config.publication.alias,
+                "snapshots": [
+                    row.model_dump(mode="json") for row in retained_snapshots(client, config)
+                ],
+            }
+        elif args.operation == "rollback":
+            restored = rollback_snapshot(client, config, args.snapshot_id, args.base_revision)
+            result = restored.model_dump(mode="json") | {"alias": config.publication.alias}
+        elif args.operation == "create":
             result = {"index": config.index.name, "created": ensure_index(client, config)}
         else:
             embedder = None
