@@ -126,6 +126,15 @@ class IngestionConfig(Record):
     max_pending_jobs: int = Field(default=20, ge=1, le=100)
 
 
+class WorkflowConfig(Record):
+    """Bound an opt-in graph independently of provider retry and output settings."""
+
+    max_retrieval_passes: Literal[1, 2] = 2
+    max_model_calls: int = Field(default=5, ge=1, le=5)
+    timeout_seconds: float = Field(default=90, ge=1, le=180, allow_inf_nan=False)
+    assessment_max_tokens: int = Field(default=256, ge=64, le=512)
+
+
 class PipelineConfig(Record):
     """The resolved configuration passed explicitly to each pipeline stage."""
 
@@ -138,6 +147,7 @@ class PipelineConfig(Record):
     api: ApiConfig = Field(default_factory=ApiConfig)
     publication: PublicationConfig = Field(default_factory=PublicationConfig)
     ingestion: IngestionConfig = Field(default_factory=IngestionConfig)
+    workflow: WorkflowConfig = Field(default_factory=WorkflowConfig)
     cloud: CloudConfig = Field(default_factory=CloudConfig)
     opensearch_url: HttpUrl = HttpUrl("http://localhost:9200")
 

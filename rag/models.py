@@ -210,6 +210,27 @@ class SearchRequest(Record):
     query: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
     mode: Literal["bm25", "vector", "hybrid"] = "bm25"
     scope: SearchScope = Field(default_factory=SearchScope)
+    workflow: bool = False
+
+
+class WorkflowStep(Record):
+    """A bounded assessment decision, not an assertion that every claim is supported."""
+
+    retrieval_pass: int = Field(ge=1, le=2)
+    query: Nonempty
+    decision: Literal["answer", "retry", "insufficient"]
+    missing_evidence: str
+    context_chunk_ids: list[Identifier] = Field(default_factory=list)
+
+
+class WorkflowReport(Record):
+    """Expose the concrete snapshot, bounded work, and structured routing decisions."""
+
+    snapshot_index: str
+    retrieval_passes: int = Field(ge=0, le=2)
+    model_calls: int = Field(ge=0, le=5)
+    assessment_prompt_version: str
+    steps: list[WorkflowStep]
 
 
 class AnswerResult(Record):
@@ -221,6 +242,7 @@ class AnswerResult(Record):
     evidence: list[ChunkRecord]
     timings_ms: dict[str, Duration]
     usage_tokens: dict[str, Annotated[int, Field(ge=0)]] = Field(default_factory=dict)
+    workflow: WorkflowReport | None = None
 
     @model_validator(mode="after")
     def known_citations(self) -> Self:

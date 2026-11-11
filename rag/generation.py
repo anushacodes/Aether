@@ -13,6 +13,7 @@ from rag.fusion import diversify_evidence
 from rag.models import AnswerResult, ChunkRecord, RetrievedHit, SearchRequest
 
 PROMPT_VERSION = "grounded-v1"
+ASSESSMENT_PROMPT_VERSION = "evidence-assessment-v1"
 MAX_CHARACTERS_PER_ESTIMATED_TOKEN = 8
 INSUFFICIENT_RESPONSE = "I don't have enough evidence in the selected sources."
 CITATION = re.compile(r"\[([a-zA-Z0-9][a-zA-Z0-9._-]*)\]")
