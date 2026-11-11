@@ -6,12 +6,15 @@ import hashlib
 import json
 import math
 import sqlite3
+import threading
 from contextlib import closing
 from pathlib import Path
 
-from rag.config import ModelConfig
+from rag.aws_clients import BedrockRuntime
+from rag.config import ModelConfig, PipelineConfig
 
 SQLITE_TIMEOUT_SECONDS = 10
+MAX_TITAN_INPUT_CHARACTERS = 50_000
 
 
 def validate_embedding(value: object, dimensions: int) -> list[float]:
@@ -85,3 +88,57 @@ class EmbeddingCache:
                 "ON CONFLICT(cache_key) DO UPDATE SET vector = excluded.vector",
                 (cache_key, json.dumps(validated, allow_nan=False)),
             )
+
+
+class Embedder:
+    """Use the same validated, cached Titan embedding space for documents and queries."""
+
+    def __init__(self, config: PipelineConfig, client: BedrockRuntime) -> None:
+        self.config = config
+        self.client = client
+        self.cache = EmbeddingCache(config.embedding.cache_path)
+        self.request_count = 0
+        self.cache_hits = 0
+        self.input_tokens = 0
+        self._counter_lock = threading.Lock()
+
+    def embed_text(self, text: str) -> list[float]:
+        """Reuse exact input or invoke Titan once; SDK retries are bounded at construction."""
+        if not text.strip():
+            raise ValueError("Embedding input cannot be blank")
+        if len(text) > MAX_TITAN_INPUT_CHARACTERS:
+            raise ValueError("Embedding input exceeds Titan's 50,000-character limit")
+        model = self.config.models
+        if model.embedding_model_id != "amazon.titan-embed-text-v2:0":
+            raise ValueError("This embedding adapter requires amazon.titan-embed-text-v2:0")
+        key = embedding_cache_key(text, model, self.config.chunking.preprocessing_version)
+        cached = self.cache.get(key, model.embedding_dimensions)
+        if cached is not None:
+            with self._counter_lock:
+                self.cache_hits += 1
+            return cached
+        # Cache hits need no allowance. Every new paid request passes the cloud guard.
+        self.config.require_cloud_settings(require_generation=False)
+        with self._counter_lock:
+            if self.request_count >= self.config.embedding.max_requests_per_run:
+                raise ValueError("Embedding request limit reached for this run")
+            self.request_count += 1
+        response = self.client.invoke_model(
+            modelId=model.embedding_model_id,
+            contentType="application/json",
+            accept="application/json",
+            body=json.dumps(
+                {
+                    "inputText": text,
+                    "dimensions": model.embedding_dimensions,
+                    "normalize": model.normalize,
+                }
+            ),
+        )
+        with closing(response["body"]) as body:
+            payload = json.loads(body.read())
+        vector = validate_embedding(payload.get("embedding"), model.embedding_dimensions)
+        self.cache.put(key, vector)
+        with self._counter_lock:
+            self.input_tokens += payload.get("inputTextTokenCount", 0)
+        return vector
