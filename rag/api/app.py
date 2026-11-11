@@ -2,25 +2,50 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator, Iterator
+from contextlib import ExitStack, asynccontextmanager, closing, contextmanager
 from pathlib import Path
 from typing import Annotated, cast
 from uuid import uuid4
 
+from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import Depends, FastAPI, HTTPException, Request
 from opensearchpy import OpenSearch, TransportError
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import Response
 
 from rag import __version__
-from rag.config import PipelineConfig, load_config
+from rag.aws_clients import create_bedrock_client
+from rag.config import ConfigurationError, PipelineConfig, load_config
+from rag.embeddings import Embedder
+from rag.models import AnswerResult, RetrievalResult, SearchRequest
+from rag.pipeline import answer_question, retrieve
 from rag.search_store import create_search_client
 
 
 def get_search_client(request: Request) -> OpenSearch:
     """Share the application's thread-safe search connection pool across requests."""
     return cast(OpenSearch, request.app.state.search)
+
+
+@contextmanager
+def _dependency_errors() -> Iterator[None]:
+    """Classify expected integration failures without sending provider details to the browser."""
+    try:
+        yield
+    except ConfigurationError as error:
+        raise HTTPException(503, detail={"code": "model_not_configured"}) from error
+    except ClientError as error:
+        code = error.response.get("Error", {}).get("Code", "")
+        if code in {"ThrottlingException", "TooManyRequestsException"}:
+            raise HTTPException(429, detail={"code": "model_throttled"}) from error
+        raise HTTPException(502, detail={"code": "model_request_failed"}) from error
+    except BotoCoreError as error:
+        raise HTTPException(503, detail={"code": "model_unavailable"}) from error
+    except TransportError as error:
+        raise HTTPException(503, detail={"code": "search_unavailable"}) from error
+    except ValueError as error:
+        raise HTTPException(502, detail={"code": "invalid_dependency_response"}) from error
 
 
 def create_app(config: PipelineConfig | None = None) -> FastAPI:
@@ -67,6 +92,26 @@ def create_app(config: PipelineConfig | None = None) -> FastAPI:
             }
         except TransportError as error:
             raise HTTPException(503, detail={"code": "search_unavailable"}) from error
+
+    @application.post("/retrieval", response_model=RetrievalResult)
+    def retrieve_passages(
+        body: SearchRequest, client: Annotated[OpenSearch, Depends(get_search_client)]
+    ) -> RetrievalResult:
+        """Run blocking search/model SDK calls in FastAPI's worker thread pool."""
+        with _dependency_errors(), ExitStack() as stack:
+            embedder = None
+            if body.mode != "bm25":
+                runtime = stack.enter_context(closing(create_bedrock_client(settings)))
+                embedder = Embedder(settings, runtime)
+            return retrieve(client, settings, body.query, body.scope, body.mode, embedder)
+
+    @application.post("/search", response_model=AnswerResult)
+    def search_answer(
+        body: SearchRequest, client: Annotated[OpenSearch, Depends(get_search_client)]
+    ) -> AnswerResult:
+        """Use the same original-context, generation, and citation path as the CLI."""
+        with _dependency_errors():
+            return answer_question(client, settings, body)
 
     return application
 

@@ -24,6 +24,10 @@ ENV_FIELDS = {
 }
 
 
+class ConfigurationError(ValueError):
+    """A required deployment or paid-call choice has not been supplied."""
+
+
 class ChunkingConfig(Record):
     """Validated source-window settings shared by the CLI and chunker."""
 
@@ -119,7 +123,7 @@ class PipelineConfig(Record):
             if value is None or (isinstance(value, str) and not value.strip())
         ]
         if missing:
-            raise ValueError("Cloud configuration missing: " + ", ".join(missing))
+            raise ConfigurationError("Cloud configuration missing: " + ", ".join(missing))
 
 
 def load_config(
