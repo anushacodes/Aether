@@ -1,4 +1,4 @@
-.PHONY: setup help lint format test check search-up search-down search-check api worker ingestion-check workflow-check snapshot-check
+.PHONY: setup help lint format test check search-up search-down search-check api worker ingestion-check workflow-check snapshot-check ragas-check
 
 setup:
 	uv sync --locked
@@ -41,3 +41,6 @@ workflow-check:
 
 snapshot-check:
 	uv run --locked python tests/check_local_snapshots.py
+
+ragas-check:
+	RAGAS_DO_NOT_TRACK=true uv run --locked --group eval python tests/check_ragas.py

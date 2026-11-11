@@ -6,12 +6,14 @@ import argparse
 import json
 import sys
 import time
+from collections import Counter
 from contextlib import ExitStack, closing
 from pathlib import Path
 from uuid import uuid4
 
 from botocore.exceptions import BotoCoreError, ClientError
 from opensearchpy import TransportError
+from pydantic import TypeAdapter
 
 from rag import __version__
 from rag.artifacts import build_manifest, save_answer_run, save_build_manifest
@@ -26,6 +28,7 @@ from rag.corpus import (
     write_jsonl,
 )
 from rag.embeddings import Embedder, embedding_manifest
+from rag.eval.answers import AnswerBinding, prepare_answers
 from rag.eval.dataset import load_dataset
 from rag.eval.pooling import pool_candidates
 from rag.eval.runs import run_retrieval_evaluation
@@ -114,6 +117,21 @@ def build_parser() -> argparse.ArgumentParser:
     pool.add_argument("--split", choices=("development", "held_out"), default="development")
     pool.add_argument("--output", type=Path, required=True)
     pool.add_argument("--allow-drafts", action="store_true")
+    for name, help_text in (
+        ("prepare-answers", "Validate saved answer samples without calling a judge"),
+        ("judge", "Run optional Ragas metrics on reviewed saved answers"),
+    ):
+        answer_eval = eval_operations.add_parser(name, help=help_text)
+        answer_eval.add_argument("--dataset", type=Path, default=Path("data/eval/pilot.json"))
+        answer_eval.add_argument("--answers", type=Path, required=True)
+        answer_eval.add_argument(
+            "--sections", type=Path, default=Path("data/processed/pilot-sections.jsonl")
+        )
+        answer_eval.add_argument("--output", type=Path, required=True)
+        if name == "prepare-answers":
+            answer_eval.add_argument("--allow-drafts", action="store_true")
+        else:
+            answer_eval.set_defaults(allow_drafts=False)
     evaluate = eval_operations.add_parser(
         "retrieval", help="Capture rankings and reviewed-label metrics"
     )
@@ -359,6 +377,38 @@ def _run_evaluation(args: argparse.Namespace, config: PipelineConfig) -> int:
         for line in args.sections.read_bytes().splitlines()
         if line.strip()
     ]
+    if args.operation in {"prepare-answers", "judge"}:
+        bindings = TypeAdapter(list[AnswerBinding]).validate_json(args.answers.read_bytes())
+        prepared = prepare_answers(
+            dataset, bindings, sections, max_samples=config.evaluation.max_samples
+        )
+        if args.operation == "prepare-answers":
+            args.output.mkdir(parents=True, exist_ok=False)
+            write_jsonl(
+                args.output / "prepared.jsonl", [row.model_dump(mode="json") for row in prepared]
+            )
+            summary = {
+                "dataset_id": dataset.dataset_id,
+                "dataset_sha256": dataset.fingerprint(),
+                "review_status": dataset.review_status,
+                "questions": len(prepared),
+                "outcomes": dict(Counter(row.status for row in prepared)),
+                "model_calls": 0,
+            }
+            (args.output / "summary.json").write_text(
+                json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+            )
+            failed = any(row.status == "error" for row in prepared)
+        else:
+            # Optional evaluation dependencies are not imported by application startup.
+            from rag.eval.ragas_runner import run_ragas_evaluation
+
+            summary = run_ragas_evaluation(config, dataset, prepared, args.output)
+            failed = any(
+                summary["metric_outcomes"].get(status, 0) for status in ("error", "undefined")
+            )
+        print(json.dumps(summary | {"output": str(args.output)}, indent=2))
+        return 1 if failed else 0
     chunks = load_chunks(args.chunks)
     output = args.output or Path("reports/runs") / f"retrieval-{uuid4().hex}"
     with ExitStack() as stack:
