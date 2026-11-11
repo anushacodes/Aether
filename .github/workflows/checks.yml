@@ -92,7 +92,7 @@ jobs:
       - run: make search-up
       - run: make search-check
       - run: uv run --locked s3-rag corpus fetch
-      - run: make ingestion-check workflow-check snapshot-check enrichment-check reranking-check comparison-check admin-check
+      - run: make ingestion-check workflow-check snapshot-check enrichment-check reranking-check comparison-check admin-check interface-check load-check
       - name: Search logs on failure
         if: failure()
         run: docker compose logs --no-color opensearch
