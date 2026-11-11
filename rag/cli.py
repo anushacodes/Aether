@@ -17,8 +17,14 @@ from opensearchpy import TransportError
 from pydantic import TypeAdapter
 
 from rag import __version__
+from rag.artifact_store import (
+    load_artifact_bundle,
+    prepare_artifact_bundle,
+    upload_artifact_bundle,
+    validate_artifact_target,
+)
 from rag.artifacts import build_manifest, save_answer_run, save_build_manifest
-from rag.aws_clients import create_bedrock_client
+from rag.aws_clients import create_artifact_client, create_bedrock_client
 from rag.chunking import chunk_inventory, chunk_section
 from rag.config import ChunkingConfig, PipelineConfig, load_config
 from rag.corpus import (
@@ -103,6 +109,25 @@ def build_parser() -> argparse.ArgumentParser:
     config.add_argument(
         "--require-bucket", action="store_true", help="Also require an artifact bucket"
     )
+    artifacts = commands.add_parser(
+        "artifacts", help="Prepare and explicitly transfer corpus bundles"
+    )
+    artifact_operations = artifacts.add_subparsers(dest="operation", required=True)
+    prepare = artifact_operations.add_parser(
+        "prepare", help="Create a verified local text-only bundle"
+    )
+    prepare.add_argument("--sources", type=Path, default=Path("data/manifests/sources.json"))
+    prepare.add_argument("--subset", type=Path, required=True)
+    prepare.add_argument("--raw-dir", type=Path, default=Path("data/raw"))
+    prepare.add_argument("--output", type=Path, required=True)
+    upload = artifact_operations.add_parser(
+        "upload", help="Upload to an existing private S3 bucket"
+    )
+    upload.add_argument("--bundle", type=Path, required=True)
+    upload.add_argument("--expected-owner", required=True)
+    upload.add_argument("--prefix", default="s3-rag")
+    upload.add_argument("--allow-write", action="store_true")
+    upload.add_argument("--output", type=Path, required=True, help="New local receipt directory")
     provider = commands.add_parser(
         "bedrock-check", help="Explicitly run a bounded, priced real-provider capability check"
     )
@@ -580,6 +605,31 @@ def main(argv: list[str] | None = None) -> int:
             if args.cloud or args.require_bucket:
                 config.require_cloud_settings(require_bucket=args.require_bucket)
             print("Configuration valid (no network requests made).")
+        elif args.command == "artifacts":
+            if args.operation == "prepare":
+                manifest = prepare_artifact_bundle(
+                    config, args.sources, args.subset, args.raw_dir, args.output
+                )
+                print(manifest.model_dump_json(indent=2))
+            else:
+                if not args.allow_write:
+                    raise ValueError("S3 artifact upload requires explicit --allow-write")
+                bucket = config.cloud.artifact_bucket
+                validate_artifact_target(bucket, args.expected_owner, args.prefix)
+                bundle = load_artifact_bundle(args.bundle)
+                if args.output.exists() or args.output.is_symlink():
+                    raise FileExistsError(f"Artifact receipt output already exists: {args.output}")
+                with closing(create_artifact_client(config)) as client:
+                    receipt = upload_artifact_bundle(
+                        client,
+                        bundle,
+                        bucket,
+                        args.expected_owner,
+                        args.prefix,
+                        args.output,
+                        allow_write=True,
+                    )
+                print(json.dumps(receipt, indent=2))
         elif args.command == "bedrock-check":
             if not args.allow_paid:
                 raise ValueError("Provider check requires explicit --allow-paid")
