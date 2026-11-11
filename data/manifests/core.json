@@ -1,0 +1,525 @@
+{
+  "schema_version": 1,
+  "corpus_id": "s3-core-v1",
+  "source_revision": "af421087e43e33d41051a80356e285fa4c199b8a",
+  "offset_unit": "unicode-codepoints-utf8-no-newline-normalization",
+  "sections": [
+    {
+      "section_id": "ug-how-versioning-works",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Retaining multiple versions of objects with S3 Versioning",
+        "How S3 Versioning works"
+      ],
+      "raw_start": 2783482,
+      "raw_end": 2786131,
+      "raw_sha256": "9b4d744458b15d209d8a19afd36fbca7f5ca261eb9203aa68a7933bb936af7cd",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete introductory subsection, including configuration XML and warnings; stops before the next Version IDs subsection."
+    },
+    {
+      "section_id": "ug-delete-versioned-objects",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Deleting Amazon S3 objects",
+        "Deleting objects from a versioning-enabled bucket"
+      ],
+      "raw_start": 507119,
+      "raw_end": 508315,
+      "raw_sha256": "472c477d2d242cc84260ffd88be63a834f8f9153022fe7982272f9022b2425d6",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete enabled-bucket subsection. Suspended-bucket semantics remain out of the first pilot."
+    },
+    {
+      "section_id": "api-deleteobject-description",
+      "source_id": "s3-api",
+      "heading_path": [
+        "Amazon S3",
+        "DeleteObject",
+        "Description"
+      ],
+      "raw_start": 221486,
+      "raw_end": 222303,
+      "raw_sha256": "16b55353b22274f4ce0ccc7b04253fc691e4088cfdb4a865fb7a6be9f7f9e644",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete opening API description through MFA/HTTPS guidance; stops before the directory-bucket note. Permissions, request syntax, and response examples are deferred."
+    },
+    {
+      "section_id": "ug-upload-overview",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Uploading objects"
+      ],
+      "raw_start": 292829,
+      "raw_end": 296023,
+      "raw_sha256": "ba8bed7d6d06f994f31c3b6e51fcf3503f8ad7167ab08b2cbf9aa50cf9e7d541",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete upload introduction through encryption and access-denied references; stops before console procedures."
+    },
+    {
+      "section_id": "ug-multipart-overview",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Uploading and copying objects using multipart upload"
+      ],
+      "raw_start": 315866,
+      "raw_end": 317749,
+      "raw_sha256": "7fa9cc215744fbffb65603e8eb32cf501f448fcb74bdb9305f368802fa1ab197",
+      "source_scope": "general-purpose",
+      "selection_reason": "Multipart benefits and retry/resume behavior; stops before the directory-bucket reference note."
+    },
+    {
+      "section_id": "ug-multipart-initiation",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Multipart upload process and initiation"
+      ],
+      "raw_start": 318084,
+      "raw_end": 319206,
+      "raw_sha256": "cec9074a8f97e4310487960e625bc0b326c5ab628f82c9e71e3722932fd21f0b",
+      "source_scope": "general-purpose",
+      "selection_reason": "Three-step process plus complete initiation/upload-ID/metadata subsection; stops before parts upload."
+    },
+    {
+      "section_id": "ug-multipart-parts",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Parts upload"
+      ],
+      "raw_start": 319206,
+      "raw_end": 320821,
+      "raw_sha256": "c96e293562be17732484c06fbb2be0f6e0bdb3ad497bce9f4d9698c98e947794",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete part numbering, ETag, charging and in-flight-abort warnings; stops before completion."
+    },
+    {
+      "section_id": "ug-multipart-completion",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Multipart upload completion"
+      ],
+      "raw_start": 320821,
+      "raw_end": 321996,
+      "raw_sha256": "75b5613379a2e61968e132139a11886a15e0baa97a7bb23925428648956d4c17",
+      "source_scope": "general-purpose",
+      "selection_reason": "Completion order, part-number/ETag requirement and full sample call-count explanation; stops before listings."
+    },
+    {
+      "section_id": "ug-multipart-listings",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Multipart upload listings"
+      ],
+      "raw_start": 321996,
+      "raw_end": 323283,
+      "raw_sha256": "de0a65354dd6899348b699486f7d04821261eacca779472297c6ef70aecfbe4f",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete listings/pagination and retain-your-own-ETag-list guidance; stops before checksums."
+    },
+    {
+      "section_id": "ug-multipart-checksums",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Checksums with multipart upload operations"
+      ],
+      "raw_start": 323283,
+      "raw_end": 324850,
+      "raw_sha256": "326fabf06e7d54ee2d6f379390ed0afa5a17630cc41e31537d0129162a4f26c3",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete checksum subsection including consecutive-part warning; stops before concurrent uploads."
+    },
+    {
+      "section_id": "ug-multipart-permissions",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Multipart upload API and permissions"
+      ],
+      "raw_start": 330485,
+      "raw_end": 335781,
+      "raw_sha256": "50023a1fecadfc440e024a96a907d6a770e4aceaac98627aafcf0dacaefcbafe",
+      "source_scope": "general-purpose",
+      "selection_reason": "Full multipart permission table and KMS/account notes through follow-up links; excludes subsequent procedure topics."
+    },
+    {
+      "section_id": "ug-download-overview",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Downloading objects"
+      ],
+      "raw_start": 465262,
+      "raw_end": 466944,
+      "raw_sha256": "9122e3de0c537221d8bf074584fb0ad1cd544af44f718b107aedc8f2c01f281f",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete introductory download choices and archive/range/account caveats; excludes topic index and procedures."
+    },
+    {
+      "section_id": "ug-download-range",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Downloading part of an object"
+      ],
+      "raw_start": 473007,
+      "raw_end": 474285,
+      "raw_sha256": "b1c3bc55421e61ddfa325daec08d704c027f65f70b6f5c65f5b2af741fc22517",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete partial-download subsection, CLI example, single-range warning, and REST parameter reference."
+    },
+    {
+      "section_id": "ug-object-checksums",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Checking object integrity"
+      ],
+      "raw_start": 477844,
+      "raw_end": 481028,
+      "raw_sha256": "730f4d7e866ed8a694e08aa1b2c8a6117cfed42f43405b27d55be9c2e392ba16",
+      "source_scope": "general-purpose",
+      "selection_reason": "Integrity introduction plus supported algorithms, checksum comparison, existing-object copy, and multipart warning; stops before console steps."
+    },
+    {
+      "section_id": "ug-access-overview",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Access control in Amazon S3"
+      ],
+      "raw_start": 1375073,
+      "raw_end": 1376673,
+      "raw_sha256": "167863329dc135c8545667528261e29b60d27ad774b9119b055359a33e8bdef9",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete access-control introduction and resource-owner/private-default definitions; stops before resource/topic directories."
+    },
+    {
+      "section_id": "ug-bucket-policies",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Bucket policies for Amazon S3"
+      ],
+      "raw_start": 1541870,
+      "raw_end": 1544355,
+      "raw_sha256": "42543dedb0a2b465fbf4b29155e164c7d9556c5a8bcb5edf7a13ff15678b124e",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete bucket-policy introduction including ownership and lifecycle warning; stops before console procedure."
+    },
+    {
+      "section_id": "ug-public-access-overview",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Blocking public access to your Amazon S3 storage"
+      ],
+      "raw_start": 2037207,
+      "raw_end": 2041328,
+      "raw_sha256": "cba574b1bf1e85345a578b957d1db7ac109df0b46632ad80fcc1ca1cc8296a27",
+      "source_scope": "general-purpose",
+      "selection_reason": "Overview, most-restrictive-combination rule and account/global caveats; stops before settings table."
+    },
+    {
+      "section_id": "ug-public-access-settings",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Block public access settings"
+      ],
+      "raw_start": 2041328,
+      "raw_end": 2046853,
+      "raw_sha256": "55bb45adb63b8fded6d20558c42ee1c76385e70b9e6d43eb64121ba6fca38b49",
+      "source_scope": "general-purpose",
+      "selection_reason": "All four settings and their important caveats; preserves PDF table text and stops before access-point procedures."
+    },
+    {
+      "section_id": "ug-version-identifiers",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Version IDs"
+      ],
+      "raw_start": 2786131,
+      "raw_end": 2787634,
+      "raw_sha256": "3fcab4ab96fd0fd77969f01feab53b58e1eff620b1c62496d0ef84dc2f157328",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete version-ID subsection including null IDs and generated opaque identifiers; stops before workflows."
+    },
+    {
+      "section_id": "ug-versioning-workflows",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Versioning workflows"
+      ],
+      "raw_start": 2787634,
+      "raw_end": 2790436,
+      "raw_sha256": "b83924dffe89315df73db51b2e218eefbcd6a0c9cb575a03a277ffc8ee80ee41",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete PUT/DELETE/GET workflow explanation and new-version/propagation caveats; stops before enabling-versioning procedures."
+    },
+    {
+      "section_id": "ug-delete-markers",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Working with delete markers"
+      ],
+      "raw_start": 2834153,
+      "raw_end": 2838404,
+      "raw_sha256": "c11ebc190ac1aa11ac5508e1b738f9946e2184f4e0671e6fdc13e7242b599bbb",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete delete-marker semantics, 404/405 headers, and listing behavior; stops before management procedures."
+    },
+    {
+      "section_id": "ug-delete-marker-recovery",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Managing delete markers"
+      ],
+      "raw_start": 2838404,
+      "raw_end": 2840415,
+      "raw_sha256": "c83bcace3775884535cc921b252e3d6c22f003725edd06bf7eb60cd6ed1633d2",
+      "source_scope": "general-purpose",
+      "selection_reason": "Expired-marker cleanup and general restoration/versionId behavior including repeated-delete warning; excludes console steps."
+    },
+    {
+      "section_id": "ug-lifecycle-overview",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Managing the lifecycle of objects"
+      ],
+      "raw_start": 3059994,
+      "raw_end": 3061755,
+      "raw_sha256": "1a6137f3c330caf6c0a59672c8068692eb6f5f46fb10c18e051340ee2d4b53e9",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete transition/expiration introduction including bucket-policy warning; stops before existing/new objects."
+    },
+    {
+      "section_id": "ug-lifecycle-expiration",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Expiring objects"
+      ],
+      "raw_start": 3083326,
+      "raw_end": 3087129,
+      "raw_sha256": "15a15f6d69afdaf5a90259434e30bd58819735411c139d44d986014bf26538d3",
+      "source_scope": "general-purpose",
+      "selection_reason": "Expiration behavior for versioning states, noncurrent versions, lock/replication caveats and precedence rules; stops before existing/new objects."
+    },
+    {
+      "section_id": "ug-lifecycle-elements",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Lifecycle configuration elements"
+      ],
+      "raw_start": 3122744,
+      "raw_end": 3124168,
+      "raw_sha256": "db7990da5a28b46466d6ac7ed6dc68250a7c26081aad88b422018cbb8aeeea48",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete rule-elements introduction and source XML skeleton; stops before individual element definitions. The source skeleton is illustrative, not valid executable XML."
+    },
+    {
+      "section_id": "ug-lifecycle-abort-multipart",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Lifecycle configuration to abort multipart uploads"
+      ],
+      "raw_start": 3174195,
+      "raw_end": 3175555,
+      "raw_sha256": "cde55dc29c9b359ba56e7cd6e2476002bd47a69b972a4162a5722780d11d73a2",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete incomplete-upload lifecycle explanation and XML example including tag-filter restriction."
+    },
+    {
+      "section_id": "ug-access-denial-definitions",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Troubleshoot access denied (403 Forbidden) errors in Amazon S3"
+      ],
+      "raw_start": 1740315,
+      "raw_end": 1741332,
+      "raw_sha256": "1674fa8c94a6f40c9a8c6a518543f6e939accda567e65ae212e57ceb28fc64f4",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete explicit/implicit denial definitions and policy-allow requirement; excludes later topic directory, pricing note and unresolved editorial link."
+    },
+    {
+      "section_id": "api-putobject-opening",
+      "source_id": "s3-api",
+      "heading_path": [
+        "Amazon S3",
+        "PutObject",
+        "Selected description"
+      ],
+      "raw_start": 780219,
+      "raw_end": 780798,
+      "raw_sha256": "355a1edb2d2da6f87a3c44820a72ac17ce525a7a8fbcee86dc215d6c2bae2008",
+      "source_scope": "general-purpose",
+      "selection_reason": "Selected complete general-purpose opening paragraphs; stops before directory-bucket endpoint/authorization guidance. Request syntax and later details are outside this selection."
+    },
+    {
+      "section_id": "api-getobject-opening",
+      "source_id": "s3-api",
+      "heading_path": [
+        "Amazon S3",
+        "GetObject",
+        "Selected description"
+      ],
+      "raw_start": 360976,
+      "raw_end": 361702,
+      "raw_sha256": "9fa950eaee0e2d76be1e0aca8fb58b9d87a9dd556f5bd749ee13bee8baef0f6e",
+      "source_scope": "general-purpose",
+      "selection_reason": "Selected complete general-purpose opening paragraphs; stops before directory-bucket endpoint/authorization guidance. Request syntax and later details are outside this selection."
+    },
+    {
+      "section_id": "api-headobject-opening",
+      "source_id": "s3-api",
+      "heading_path": [
+        "Amazon S3",
+        "HeadObject",
+        "Selected description"
+      ],
+      "raw_start": 453292,
+      "raw_end": 454848,
+      "raw_sha256": "24add3ca6ff9cce0614c9cf171dbb2938659064140e419dfdffce8a3b5f3a9f1",
+      "source_scope": "general-purpose",
+      "selection_reason": "Selected complete general-purpose opening paragraphs; stops before directory-bucket endpoint/authorization guidance. Request syntax and later details are outside this selection."
+    },
+    {
+      "section_id": "api-deleteobjects-opening",
+      "source_id": "s3-api",
+      "heading_path": [
+        "Amazon S3",
+        "DeleteObjects",
+        "Selected description"
+      ],
+      "raw_start": 232580,
+      "raw_end": 233355,
+      "raw_sha256": "216279e0271a76940401f6c1617ad16c40c9486e39274b4f00b497f08941a13d",
+      "source_scope": "general-purpose",
+      "selection_reason": "Selected complete general-purpose opening paragraphs; stops before directory-bucket endpoint/authorization guidance. Request syntax and later details are outside this selection."
+    },
+    {
+      "section_id": "api-createmultipartupload-opening",
+      "source_id": "s3-api",
+      "heading_path": [
+        "Amazon S3",
+        "CreateMultipartUpload",
+        "Selected description"
+      ],
+      "raw_start": 128995,
+      "raw_end": 130263,
+      "raw_sha256": "6ab802c9861277d4a33ab9c318150592f6199d2c5f499cb0c4027ce32ac82ac3",
+      "source_scope": "general-purpose",
+      "selection_reason": "Selected complete general-purpose opening paragraphs; stops before directory-bucket endpoint/authorization guidance. Request syntax and later details are outside this selection."
+    },
+    {
+      "section_id": "api-uploadpart-opening",
+      "source_id": "s3-api",
+      "heading_path": [
+        "Amazon S3",
+        "UploadPart",
+        "Selected description"
+      ],
+      "raw_start": 896263,
+      "raw_end": 897821,
+      "raw_sha256": "ff8965c0334f28d993f6922d5cf4307323a5ba74475f1d35a7e1c38fced929b0",
+      "source_scope": "general-purpose",
+      "selection_reason": "Selected complete general-purpose opening paragraphs; stops before directory-bucket endpoint/authorization guidance. Request syntax and later details are outside this selection."
+    },
+    {
+      "section_id": "api-completemultipartupload-opening",
+      "source_id": "s3-api",
+      "heading_path": [
+        "Amazon S3",
+        "CompleteMultipartUpload",
+        "Selected description"
+      ],
+      "raw_start": 41742,
+      "raw_end": 44217,
+      "raw_sha256": "bc801e3002e563a8de095affaaa59ecb8058b560c852dc279aec4e61d5a3d020",
+      "source_scope": "general-purpose",
+      "selection_reason": "Selected complete general-purpose opening paragraphs; stops before directory-bucket endpoint/authorization guidance. Request syntax and later details are outside this selection."
+    },
+    {
+      "section_id": "api-abortmultipartupload-opening",
+      "source_id": "s3-api",
+      "heading_path": [
+        "Amazon S3",
+        "AbortMultipartUpload",
+        "Selected description"
+      ],
+      "raw_start": 34010,
+      "raw_end": 34684,
+      "raw_sha256": "a1cbe70db3bca0d7856cba3a87d5f2a00a4f93ed7ba66494af5c964e43fa4c34",
+      "source_scope": "general-purpose",
+      "selection_reason": "Selected complete general-purpose opening paragraphs; stops before directory-bucket endpoint/authorization guidance. Request syntax and later details are outside this selection."
+    },
+    {
+      "section_id": "api-listparts-opening",
+      "source_id": "s3-api",
+      "heading_path": [
+        "Amazon S3",
+        "ListParts",
+        "Selected description"
+      ],
+      "raw_start": 605170,
+      "raw_end": 606151,
+      "raw_sha256": "5ec654699dd2a85b4341ff9f0d7e45d19e4f8718b41c763b9085954b7ee77ff9",
+      "source_scope": "general-purpose",
+      "selection_reason": "Selected complete general-purpose opening paragraphs; stops before directory-bucket endpoint/authorization guidance. Request syntax and later details are outside this selection."
+    },
+    {
+      "section_id": "api-listobjectversions-opening",
+      "source_id": "s3-api",
+      "heading_path": [
+        "Amazon S3",
+        "ListObjectVersions",
+        "Selected description"
+      ],
+      "raw_start": 582710,
+      "raw_end": 583467,
+      "raw_sha256": "56e34ca301d95a3e61ed31e2e40fc0115d819ffe7ba77ef1261a751e603ff94d",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete introductory description through related-operation links; stops before Request Syntax. Unsupported-directory-bucket exclusion notes are retained; no directory-bucket procedure is selected."
+    },
+    {
+      "section_id": "api-putbucketversioning-opening",
+      "source_id": "s3-api",
+      "heading_path": [
+        "Amazon S3",
+        "PutBucketVersioning",
+        "Selected description"
+      ],
+      "raw_start": 761074,
+      "raw_end": 762988,
+      "raw_sha256": "7916da7febaf49d7372734b549b3107bc86db63007d36c8fd998f533cbf37055",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete introductory description through related-operation links; stops before Request Syntax. Unsupported-directory-bucket exclusion notes are retained; no directory-bucket procedure is selected."
+    },
+    {
+      "section_id": "api-putbucketlifecycleconfiguration-opening",
+      "source_id": "s3-api",
+      "heading_path": [
+        "Amazon S3",
+        "PutBucketLifecycleConfiguration",
+        "Selected description"
+      ],
+      "raw_start": 686720,
+      "raw_end": 689857,
+      "raw_sha256": "38e6f7531e4b8200c0c72c04684ea8611bcd78d1c78bb8a11c86e6ab5be99975",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete introductory description through related-operation links; stops before Request Syntax. Unsupported-directory-bucket exclusion notes are retained; no directory-bucket procedure is selected."
+    },
+    {
+      "section_id": "api-getbucketlifecycleconfiguration-opening",
+      "source_id": "s3-api",
+      "heading_path": [
+        "Amazon S3",
+        "GetBucketLifecycleConfiguration",
+        "Selected description"
+      ],
+      "raw_start": 298990,
+      "raw_end": 300790,
+      "raw_sha256": "5bb8624fa816f6ac1692a8eabbb1b9f2da63d447428aee27bdb484f96007d4fb",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete introductory description through related-operation links; stops before Request Syntax. Unsupported-directory-bucket exclusion notes are retained; no directory-bucket procedure is selected."
+    }
+  ],
+  "exclusions": [
+    "Standalone Glacier vault/archive and Outposts manuals",
+    "Directory-bucket/S3 Express procedures and operational authorization; unsupported-feature exclusion notes can remain in general-purpose descriptions",
+    "Live AWS account inspection or remediation",
+    "API operations and request parameters outside the explicitly selected ranges",
+    "All source ranges not explicitly selected; evaluation labels and generated metadata are never source evidence"
+  ]
+}

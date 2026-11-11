@@ -1,0 +1,20 @@
+# Separate local corpus: preserve the original pilot alias and state.
+opensearch_url = "http://localhost:9200"
+
+[chunking]
+strategy = "heading-aware"
+
+[index]
+name = "s3-rag-core"
+
+[publication]
+alias = "s3-rag-core"
+state_path = "data/core-state.sqlite3"
+snapshot_dir = "data/snapshots/core"
+
+[ingestion]
+approved_subsets = { core = "data/manifests/core.json" }
+
+[cloud]
+region = "us-east-1"
+# No generation model or paid-call allowance is configured.
