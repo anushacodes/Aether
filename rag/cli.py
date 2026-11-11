@@ -27,6 +27,7 @@ from rag.corpus import (
 )
 from rag.embeddings import Embedder, embedding_manifest
 from rag.eval.dataset import load_dataset
+from rag.eval.pooling import pool_candidates
 from rag.eval.runs import run_retrieval_evaluation
 from rag.indexing import bulk_index_chunks, ensure_index, load_chunks
 from rag.ingestion import ingestion_catalog, submit_ingestion
@@ -107,6 +108,12 @@ def build_parser() -> argparse.ArgumentParser:
     validate.add_argument(
         "--allow-drafts", action="store_true", help="Inspect drafts without certifying labels"
     )
+    pool = eval_operations.add_parser("pool", help="Pool saved candidates for evidence review")
+    pool.add_argument("--dataset", type=Path, default=Path("data/eval/pilot.json"))
+    pool.add_argument("--run", type=Path, action="append", required=True)
+    pool.add_argument("--split", choices=("development", "held_out"), default="development")
+    pool.add_argument("--output", type=Path, required=True)
+    pool.add_argument("--allow-drafts", action="store_true")
     evaluate = eval_operations.add_parser(
         "retrieval", help="Capture rankings and reviewed-label metrics"
     )
@@ -338,6 +345,14 @@ def _run_evaluation(args: argparse.Namespace, config: PipelineConfig) -> int:
                 indent=2,
             )
         )
+        return 0
+    if args.operation == "pool":
+        pool = pool_candidates(dataset, args.run, args.split)
+        serialized = json.dumps(pool, indent=2, ensure_ascii=False, allow_nan=False)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        with args.output.open("x", encoding="utf-8") as stream:
+            stream.write(serialized + "\n")
+        print(json.dumps({"status": pool["status"], "output": str(args.output)}, indent=2))
         return 0
     sections = [
         SectionRecord.model_validate_json(line)
