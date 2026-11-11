@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from typing import Any, Literal
 
@@ -60,8 +61,17 @@ def bm25_search(
 ) -> list[RetrievedHit]:
     """Rank matching original passages and headings using OpenSearch BM25."""
     _validate_query(query)
+    metadata_boost = config.retrieval.metadata_boost
+    if not math.isfinite(metadata_boost) or not 0 <= metadata_boost <= 5:
+        raise ValueError("Metadata boost must be finite and between zero and five")
     if checkpoint is not None:
         checkpoint()
+    fields = ["original_text", "heading_text^1.5"]
+    if metadata_boost:
+        verify_index(client, config, require_inferred_metadata=True)
+        if checkpoint is not None:
+            checkpoint()
+        fields.append(f"inferred_text^{metadata_boost:g}")
     response = client.search(
         index=config.index.name,
         body={
@@ -73,7 +83,7 @@ def bm25_search(
                         {
                             "multi_match": {
                                 "query": query,
-                                "fields": ["original_text", "heading_text^1.5"],
+                                "fields": fields,
                             }
                         }
                     ],

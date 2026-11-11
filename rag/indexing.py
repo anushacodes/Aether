@@ -22,11 +22,20 @@ def _index_metadata(config: PipelineConfig) -> dict[str, str | int | bool]:
         "embedding_dimensions": config.models.embedding_dimensions,
         "normalize": config.models.normalize,
         "preprocessing_version": config.chunking.preprocessing_version,
+        **(
+            {"enrichment_fingerprint": config.index.enrichment_fingerprint}
+            if config.index.enrichment_fingerprint is not None
+            else {}
+        ),
     }
 
 
-def index_definition(config: PipelineConfig) -> dict[str, object]:
+def index_definition(
+    config: PipelineConfig, *, inferred_metadata: bool = False
+) -> dict[str, object]:
     """Map searchable text and authoritative filters separately from full evidence records."""
+    if inferred_metadata != (config.index.enrichment_fingerprint is not None):
+        raise ValueError("Enriched mappings require a verified metadata input fingerprint")
     return {
         "settings": {"index.knn": True, "number_of_shards": 1, "number_of_replicas": 0},
         "mappings": {
@@ -42,6 +51,7 @@ def index_definition(config: PipelineConfig) -> dict[str, object]:
                 "source_scope": {"type": "keyword"},
                 "chunker_version": {"type": "keyword"},
                 "record": {"type": "object", "enabled": False},
+                **({"inferred_text": {"type": "text"}} if inferred_metadata else {}),
                 "embedding": {
                     "type": "knn_vector",
                     "dimension": config.models.embedding_dimensions,
@@ -52,17 +62,23 @@ def index_definition(config: PipelineConfig) -> dict[str, object]:
     }
 
 
-def ensure_index(client: OpenSearch, config: PipelineConfig) -> bool:
+def ensure_index(
+    client: OpenSearch, config: PipelineConfig, *, inferred_metadata: bool = False
+) -> bool:
     """Create the configured index, or reject incompatible existing embedding metadata."""
     name = config.index.name
     if client.indices.exists(index=name):
-        verify_index(client, config)
+        verify_index(client, config, require_inferred_metadata=inferred_metadata)
         return False
-    client.indices.create(index=name, body=index_definition(config))
+    client.indices.create(
+        index=name, body=index_definition(config, inferred_metadata=inferred_metadata)
+    )
     return True
 
 
-def verify_index(client: OpenSearch, config: PipelineConfig) -> None:
+def verify_index(
+    client: OpenSearch, config: PipelineConfig, *, require_inferred_metadata: bool = False
+) -> None:
     """Reject query/index embedding-space mismatches without creating or changing an index."""
     mapping = client.indices.get_mapping(index=config.index.name)
     # An alias resolves to its concrete index name in get_mapping responses.
@@ -76,6 +92,12 @@ def verify_index(client: OpenSearch, config: PipelineConfig) -> None:
         raise ValueError(
             f"Index {config.index.name!r} has incompatible model or preprocessing settings"
         )
+    if actual.get("enrichment_fingerprint") != config.index.enrichment_fingerprint:
+        raise ValueError("Index enrichment fingerprint must match its experiment record")
+    if require_inferred_metadata:
+        properties = next(iter(mapping.values()))["mappings"].get("properties", {})
+        if properties.get("inferred_text", {}).get("type") != "text":
+            raise ValueError("Metadata retrieval requires a separate enriched index")
 
 
 def load_chunks(path: Path) -> list[ChunkRecord]:
@@ -114,6 +136,8 @@ def bulk_index_chunks(
     config: PipelineConfig,
     chunks: list[ChunkRecord],
     embeddings: Mapping[str, list[float]] | None = None,
+    *,
+    inferred_text: Mapping[str, str] | None = None,
 ) -> int:
     """Upsert stable IDs, inspect every bulk item, and verify the full corpus count."""
     if client.indices.exists_alias(name=config.index.name):
@@ -122,6 +146,8 @@ def bulk_index_chunks(
         raise ValueError(f"Indexing requires between 1 and {MAX_CORPUS_CHUNKS} chunks")
     if len({chunk.chunk_id for chunk in chunks}) != len(chunks):
         raise ValueError("Cannot index duplicate chunk IDs")
+    if inferred_text is not None and set(inferred_text) != {chunk.chunk_id for chunk in chunks}:
+        raise ValueError("Inferred metadata must cover exactly the indexed chunk IDs")
     operations: list[dict[str, object]] = []
     for chunk in chunks:
         document = {
@@ -141,10 +167,12 @@ def bulk_index_chunks(
             document["embedding"] = validate_embedding(
                 embeddings[chunk.chunk_id], config.models.embedding_dimensions
             )
+        if inferred_text is not None:
+            document["inferred_text"] = inferred_text[chunk.chunk_id]
         operations.extend(
             [{"index": {"_index": config.index.name, "_id": chunk.chunk_id}}, document]
         )
-    ensure_index(client, config)
+    ensure_index(client, config, inferred_metadata=inferred_text is not None)
     response = client.bulk(body=operations, refresh="wait_for")
     failures = [
         {"chunk_id": item["index"].get("_id"), "status": item["index"].get("status")}
