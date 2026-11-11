@@ -93,6 +93,16 @@ class IndexConfig(Record):
     name: str = Field(default="s3-rag-pilot", pattern=r"^[a-z0-9][a-z0-9._-]*$", max_length=100)
 
 
+class ApiConfig(Record):
+    """Keep browser origins and local request limits explicit."""
+
+    allowed_origins: list[str] = Field(
+        default_factory=lambda: ["http://localhost:3000", "http://127.0.0.1:3000"]
+    )
+    max_concurrent_searches: int = Field(default=4, ge=1, le=8)
+    requests_per_minute: int = Field(default=30, ge=1, le=120)
+
+
 class PipelineConfig(Record):
     """The resolved configuration passed explicitly to each pipeline stage."""
 
@@ -102,6 +112,7 @@ class PipelineConfig(Record):
     embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
     index: IndexConfig = Field(default_factory=IndexConfig)
     generation: GenerationConfig = Field(default_factory=GenerationConfig)
+    api: ApiConfig = Field(default_factory=ApiConfig)
     cloud: CloudConfig = Field(default_factory=CloudConfig)
     opensearch_url: HttpUrl = HttpUrl("http://localhost:9200")
 

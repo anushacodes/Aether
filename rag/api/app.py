@@ -10,11 +10,13 @@ from uuid import uuid4
 
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from opensearchpy import OpenSearch, TransportError
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import Response
 
 from rag import __version__
+from rag.api.limits import RequestLimitError, SearchLimiter
 from rag.aws_clients import create_bedrock_client
 from rag.config import ConfigurationError, PipelineConfig, load_config
 from rag.embeddings import Embedder
@@ -33,6 +35,10 @@ def _dependency_errors() -> Iterator[None]:
     """Classify expected integration failures without sending provider details to the browser."""
     try:
         yield
+    except RequestLimitError as error:
+        raise HTTPException(
+            429, detail={"code": str(error)}, headers={"Retry-After": "60"}
+        ) from error
     except ConfigurationError as error:
         raise HTTPException(503, detail={"code": "model_not_configured"}) from error
     except ClientError as error:
@@ -61,6 +67,14 @@ def create_app(config: PipelineConfig | None = None) -> FastAPI:
 
     application = FastAPI(title="S3 Knowledge Engine", version=__version__, lifespan=lifespan)
     application.state.config = settings
+    limiter = SearchLimiter(settings.api)
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.api.allowed_origins,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type", "Authorization"],
+        expose_headers=["X-Request-ID"],
+    )
 
     @application.middleware("http")
     async def request_identity(request: Request, call_next: RequestResponseEndpoint) -> Response:
@@ -98,7 +112,7 @@ def create_app(config: PipelineConfig | None = None) -> FastAPI:
         body: SearchRequest, client: Annotated[OpenSearch, Depends(get_search_client)]
     ) -> RetrievalResult:
         """Run blocking search/model SDK calls in FastAPI's worker thread pool."""
-        with _dependency_errors(), ExitStack() as stack:
+        with _dependency_errors(), limiter.admit(), ExitStack() as stack:
             embedder = None
             if body.mode != "bm25":
                 runtime = stack.enter_context(closing(create_bedrock_client(settings)))
@@ -110,7 +124,7 @@ def create_app(config: PipelineConfig | None = None) -> FastAPI:
         body: SearchRequest, client: Annotated[OpenSearch, Depends(get_search_client)]
     ) -> AnswerResult:
         """Use the same original-context, generation, and citation path as the CLI."""
-        with _dependency_errors():
+        with _dependency_errors(), limiter.admit():
             return answer_question(client, settings, body)
 
     return application

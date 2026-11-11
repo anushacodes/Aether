@@ -31,3 +31,8 @@ max_requests_per_run = 500
 
 [index]
 name = "s3-rag-pilot"
+
+[api]
+allowed_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+max_concurrent_searches = 4
+requests_per_minute = 30
