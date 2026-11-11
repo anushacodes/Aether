@@ -8,7 +8,27 @@ from typing import Literal, Self
 
 from pydantic import Field, model_validator
 
-from rag.models import Guide, Identifier, Record
+from rag.models import Digest, Guide, Identifier, Record
+
+
+class EvaluationPassage(Record):
+    """A supporting span in cleaned source text, anchored to its original raw section."""
+
+    passage_id: Identifier
+    source_id: Identifier
+    section_id: Identifier
+    raw_section_sha256: Digest
+    cleaning_version: str
+    text_start: int = Field(ge=0)
+    text_end: int = Field(gt=0)
+    text_sha256: Digest
+
+    @model_validator(mode="after")
+    def ordered_span(self) -> Self:
+        """Reject empty or reversed labeled spans."""
+        if self.text_end <= self.text_start:
+            raise ValueError("Labeled passage end must follow its start")
+        return self
 
 
 class EvaluationQuestion(Record):
@@ -57,11 +77,14 @@ class EvaluationDataset(Record):
     review_status: Literal["draft", "source_checked_by_assistant_pending_human_review", "reviewed"]
     note: str
     questions: list[EvaluationQuestion] = Field(min_length=1)
+    passages: list[EvaluationPassage] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def isolated_splits(self) -> Self:
         """Reject duplicate IDs and cross-split question/group reuse."""
         identifiers: set[str] = set()
+        if len({passage.passage_id for passage in self.passages}) != len(self.passages):
+            raise ValueError("Evaluation passage IDs must be unique")
         groups: dict[str, str] = {}
         texts: dict[str, str] = {}
         for question in self.questions:
@@ -85,6 +108,15 @@ class EvaluationDataset(Record):
             raise ValueError(
                 "Evaluation labels require human review; drafts are not benchmark truth"
             )
+
+        known_passages = {passage.passage_id for passage in self.passages}
+        for question in self.questions:
+            referenced = set(question.reference_passage_ids) | set(question.relevance_grades)
+            referenced |= {
+                identifier for group in question.required_evidence_groups for identifier in group
+            }
+            if not referenced.issubset(known_passages):
+                raise ValueError("Reviewed labels must reference fixed source passages")
 
     def fingerprint(self) -> str:
         """Identify the exact labels, rubric fields, and split assignment used by a run."""
