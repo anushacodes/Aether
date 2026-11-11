@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import tomllib
 from collections.abc import Mapping
@@ -22,6 +23,7 @@ ENV_FIELDS = {
     "RAG_GENERATION_MODEL_ID": ("models", "generation_model_id"),
     "RAG_SEARCH_INDEX": ("index", "name"),
     "RAG_ADMIN_TOKEN": ("ingestion", "admin_token"),
+    "RAG_ALLOWED_ORIGINS": ("api", "allowed_origins"),
 }
 
 
@@ -187,6 +189,8 @@ def load_config(
             # Literal dimensions must reach Pydantic as integers, not arbitrary strings.
             if variable == "RAG_EMBEDDING_DIMENSIONS":
                 section[field] = int(value)
+            elif variable == "RAG_ALLOWED_ORIGINS":
+                section[field] = json.loads(value)
             else:
                 section[field] = value
     if env.get("RAG_OPENSEARCH_URL", "").strip():

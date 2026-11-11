@@ -17,10 +17,15 @@ def test_environment_overrides_file_and_blank_values_do_not(tmp_path: Path) -> N
     )
     config = load_config(
         config_file,
-        environ={"RAG_AWS_REGION": "", "RAG_EMBEDDING_DIMENSIONS": "256"},
+        environ={
+            "RAG_AWS_REGION": "",
+            "RAG_EMBEDDING_DIMENSIONS": "256",
+            "RAG_ALLOWED_ORIGINS": '["http://localhost:13000"]',
+        },
     )
     assert config.cloud.region == "us-east-1"
     assert config.models.embedding_dimensions == 256
+    assert config.api.allowed_origins == ["http://localhost:13000"]
 
 
 def test_cloud_settings_require_explicit_positive_allowance() -> None:
