@@ -23,6 +23,7 @@ from rag.corpus import (
     write_jsonl,
 )
 from rag.embeddings import Embedder, embedding_manifest
+from rag.eval.dataset import load_dataset
 from rag.indexing import bulk_index_chunks, ensure_index, load_chunks
 from rag.models import ChunkRecord, SearchRequest, SearchScope, SectionRecord, SubsetManifest
 from rag.pipeline import answer_question, retrieve
@@ -58,6 +59,15 @@ def build_parser() -> argparse.ArgumentParser:
     _add_question_arguments(query)
     ask = commands.add_parser("ask", help="Answer from retrieved passages with source citations")
     _add_question_arguments(ask)
+    evaluation = commands.add_parser(
+        "eval", help="Validate and evaluate independent quality labels"
+    )
+    eval_operations = evaluation.add_subparsers(dest="operation", required=True)
+    validate = eval_operations.add_parser("validate", help="Check labels and prevent split leakage")
+    validate.add_argument("--dataset", type=Path, default=Path("data/eval/pilot.json"))
+    validate.add_argument(
+        "--allow-drafts", action="store_true", help="Inspect drafts without certifying labels"
+    )
     embed = commands.add_parser(
         "embed", help="Embed chunk records through Bedrock with a disk cache"
     )
@@ -180,6 +190,19 @@ def main(argv: list[str] | None = None) -> int:
                             )
                     result = retrieved.model_dump(mode="json")
             print(json.dumps(result, indent=2))
+        elif args.command == "eval":
+            dataset = load_dataset(args.dataset, allow_drafts=args.allow_drafts)
+            print(
+                json.dumps(
+                    {
+                        "dataset_id": dataset.dataset_id,
+                        "questions": len(dataset.questions),
+                        "review_status": dataset.review_status,
+                        "sha256": dataset.fingerprint(),
+                    },
+                    indent=2,
+                )
+            )
         elif args.command == "ask":
             request = SearchRequest(
                 query=args.query,
