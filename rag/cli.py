@@ -22,6 +22,7 @@ from rag.corpus import (
     write_jsonl,
 )
 from rag.embeddings import Embedder, embedding_manifest
+from rag.indexing import ensure_index
 from rag.models import ChunkRecord, SectionRecord, SubsetManifest
 from rag.search_store import check_search_store, create_search_client
 
@@ -49,6 +50,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     embed.add_argument("--chunks", type=Path, default=Path("data/processed/pilot-chunks.jsonl"))
     embed.add_argument("--output", type=Path, default=Path("data/processed/pilot-embeddings.jsonl"))
+    index = commands.add_parser("index", help="Create and populate the configured corpus index")
+    index_operations = index.add_subparsers(dest="operation", required=True)
+    index_operations.add_parser("create", help="Create the index or verify embedding compatibility")
     corpus = commands.add_parser(
         "corpus", help="Fetch, inspect, and extract pinned source snapshots"
     )
@@ -163,6 +167,10 @@ def main(argv: list[str] | None = None) -> int:
                     indent=2,
                 )
             )
+        elif args.command == "index":
+            with create_search_client(config) as client:
+                created = ensure_index(client, config)
+            print(json.dumps({"index": config.index.name, "created": created}, indent=2))
         else:
             _run_corpus(args, config)
     except TransportError as error:
