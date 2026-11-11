@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from pathlib import Path
 
-from opensearchpy import OpenSearch
+from opensearchpy import NotFoundError, OpenSearch
 
 from rag.config import PipelineConfig
 from rag.embeddings import validate_embedding
@@ -69,7 +69,10 @@ def verify_index(client: OpenSearch, config: PipelineConfig) -> None:
     if len(mapping) != 1:
         raise ValueError("Search requires exactly one compatible corpus snapshot")
     actual = next(iter(mapping.values()))["mappings"].get("_meta")
-    if actual != _index_metadata(config):
+    expected = _index_metadata(config)
+    if not isinstance(actual, dict) or any(
+        actual.get(key) != value for key, value in expected.items()
+    ):
         raise ValueError(
             f"Index {config.index.name!r} has incompatible model or preprocessing settings"
         )
@@ -93,6 +96,19 @@ def load_chunks(path: Path) -> list[ChunkRecord]:
     return chunks
 
 
+def resolve_read_config(client: OpenSearch, config: PipelineConfig) -> PipelineConfig:
+    """Pin a logical request to one concrete index before concurrent queries can cross updates."""
+    try:
+        aliases = client.indices.get_alias(name=config.index.name)
+    except NotFoundError:
+        return config
+    if len(aliases) != 1:
+        raise ValueError("Search requires one active corpus snapshot")
+    resolved = config.model_copy(deep=True)
+    resolved.index.name = next(iter(aliases))
+    return resolved
+
+
 def bulk_index_chunks(
     client: OpenSearch,
     config: PipelineConfig,
@@ -100,6 +116,8 @@ def bulk_index_chunks(
     embeddings: Mapping[str, list[float]] | None = None,
 ) -> int:
     """Upsert stable IDs, inspect every bulk item, and verify the full corpus count."""
+    if client.indices.exists_alias(name=config.index.name):
+        raise ValueError("Active aliases are immutable; build and publish a new snapshot")
     if not chunks or len(chunks) > MAX_CORPUS_CHUNKS:
         raise ValueError(f"Indexing requires between 1 and {MAX_CORPUS_CHUNKS} chunks")
     if len({chunk.chunk_id for chunk in chunks}) != len(chunks):

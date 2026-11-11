@@ -13,6 +13,7 @@ from rag.config import PipelineConfig
 from rag.embeddings import Embedder
 from rag.fusion import reciprocal_rank_fusion
 from rag.generation import INSUFFICIENT_RESPONSE, generate_answer
+from rag.indexing import resolve_read_config
 from rag.models import AnswerResult, RetrievalResult, RetrievedHit, SearchRequest, SearchScope
 from rag.retrieval import bm25_search, vector_search
 
@@ -49,6 +50,7 @@ def retrieve(
     """Run the requested retrievers; hybrid starts independent work concurrently."""
     query = SearchRequest(query=query, mode=mode, scope=scope).query
     started = perf_counter()
+    config = resolve_read_config(client, config)
     if mode == "bm25":
         hits, timings = _keyword_stage(client, config, query, scope)
     elif mode in {"vector", "hybrid"}:

@@ -6,6 +6,7 @@ import threading
 from unittest.mock import Mock
 
 import pytest
+from opensearchpy import NotFoundError
 
 from rag.config import PipelineConfig
 from rag.models import RetrievedHit, SearchScope
@@ -27,6 +28,8 @@ def test_hybrid_retrieval_runs_independent_paths_concurrently(
 
     monkeypatch.setattr("rag.pipeline.bm25_search", keyword)
     monkeypatch.setattr("rag.pipeline.vector_search", vector)
-    result = retrieve(Mock(), PipelineConfig(), "versions", SearchScope(), "hybrid", Mock())
+    client = Mock()
+    client.indices.get_alias.side_effect = NotFoundError(404, "no alias")
+    result = retrieve(client, PipelineConfig(), "versions", SearchScope(), "hybrid", Mock())
     assert result.hits == []
     assert {"bm25", "embedding", "vector", "fusion", "retrieval_total"} <= result.timings_ms.keys()

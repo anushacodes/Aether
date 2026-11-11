@@ -19,6 +19,7 @@ def test_bulk_failure_is_explicit_even_when_other_items_succeed() -> None:
     chunk = ChunkRecord.model_validate(record)
     other = chunk.model_copy(update={"chunk_id": "another-chunk"})
     client = Mock()
+    client.indices.exists_alias.return_value = False
     client.indices.exists.return_value = True
     client.indices.get_mapping.return_value = {
         config.index.name: {"mappings": index_definition(config)["mappings"]}
