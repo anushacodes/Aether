@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from time import monotonic
 from typing import Any
 
-from rag.aws_clients import BedrockRuntime, create_bedrock_client
+from rag.aws_clients import (
+    BedrockRuntime,
+    RerankRuntime,
+    create_bedrock_client,
+    create_reranking_client,
+)
 from rag.config import PipelineConfig
 
 
@@ -38,11 +44,14 @@ class BoundedRuntime:
         runtime: BedrockRuntime | None = None,
         *,
         clock: Callable[[], float] | None = None,
+        rerank_runtime: RerankRuntime | None = None,
     ) -> None:
         self.config = config
         self.cancelled = cancelled
         self.runtime = runtime
         self.owns_runtime = runtime is None
+        self.rerank_runtime = rerank_runtime
+        self.owns_rerank_runtime = rerank_runtime is None
         self.clock = clock or monotonic
         self.started = self.clock()
         self.deadline = self.started + config.workflow.timeout_seconds
@@ -65,20 +74,34 @@ class BoundedRuntime:
         if self.clock() >= self.deadline:
             raise WorkflowDeadlineError("Workflow deadline exceeded")
 
-    def _begin(self) -> BedrockRuntime:
-        self.checkpoint()
-        # The whole answer workflow requires a generation choice, including embedding misses.
-        self.config.require_cloud_settings(require_generation=True)
+    @contextmanager
+    def _call_slot(self) -> Iterator[None]:
+        """Reserve one shared call after successful client setup, before releasing the lock."""
         with self._lock:
+            self.checkpoint()
+            self.config.require_cloud_settings(require_generation=True)
             if self.model_calls >= self.config.workflow.max_model_calls:
                 raise WorkflowBudgetError("Workflow model-call budget exhausted")
+            yield
+            self.checkpoint()
+            self.model_calls += 1
+
+    def _begin(self) -> BedrockRuntime:
+        with self._call_slot():
             if self.runtime is None:
                 self.runtime = create_bedrock_client(
                     self.config, require_generation=True, max_attempts=1
                 )
-            self.checkpoint()
-            self.model_calls += 1
-            return self.runtime
+        return self.runtime
+
+    def rerank(self, **kwargs: Any) -> dict[str, Any]:
+        """Count native reranking in the same five-call budget as embeddings and answers."""
+        with self._call_slot():
+            if self.rerank_runtime is None:
+                self.rerank_runtime = create_reranking_client(self.config)
+        response = self.rerank_runtime.rerank(**kwargs)
+        self.checkpoint()
+        return response
 
     def invoke_model(self, **kwargs: Any) -> dict[str, Any]:
         """Count embedding misses in the same allowance as assessment and generation."""
@@ -108,5 +131,9 @@ class BoundedRuntime:
 
     def close(self) -> None:
         """Close only a client created here, after its owning graph has finished."""
-        if self.owns_runtime and self.runtime is not None:
-            self.runtime.close()
+        try:
+            if self.owns_runtime and self.runtime is not None:
+                self.runtime.close()
+        finally:
+            if self.owns_rerank_runtime and self.rerank_runtime is not None:
+                self.rerank_runtime.close()

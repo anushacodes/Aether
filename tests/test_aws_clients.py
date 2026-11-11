@@ -18,3 +18,9 @@ def test_missing_allowance_fails_before_credential_discovery(
     with pytest.raises(ValueError, match="RAG_DEVELOPMENT_MODEL_BUDGET_USD"):
         create_bedrock_client(PipelineConfig(cloud={"region": "us-east-1"}))
     session_factory.assert_not_called()
+
+    configured = PipelineConfig(cloud={"region": "us-east-1", "development_model_budget_usd": 1})
+    create_bedrock_client(configured, max_attempts=1)
+    sdk_config = session_factory.return_value.client.call_args.kwargs["config"]
+    assert sdk_config.retries["total_max_attempts"] == 1
+    assert sdk_config.connect_timeout <= 5 and sdk_config.read_timeout <= 30

@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Protocol, cast
 
 import boto3
 from botocore.config import Config
 
-from rag.config import PipelineConfig
+from rag.config import ConfigurationError, PipelineConfig
 
 CONNECT_TIMEOUT_SECONDS = 5
 READ_TIMEOUT_SECONDS = 30
@@ -32,6 +33,45 @@ class BedrockRuntime(Protocol):
     def close(self) -> None:
         """Release the SDK connection pool when its owning workflow finishes."""
         ...
+
+
+class RerankRuntime(Protocol):
+    """Native reranking uses a separate Bedrock agent-runtime service client."""
+
+    def rerank(self, **kwargs: Any) -> dict[str, Any]:
+        """Return source-array indices and relevance scores, without reported token usage."""
+        ...
+
+    def close(self) -> None:
+        """Release an owned connection pool."""
+        ...
+
+
+def require_reranking_settings(config: PipelineConfig) -> None:
+    """Reject missing/foreign-region model choices before discovering credentials."""
+    config.require_cloud_settings(require_generation=False)
+    arn = config.reranking.model_arn or ""
+    match = re.fullmatch(
+        r"arn:(aws|aws-us-gov|aws-cn):bedrock:([^:]+)::foundation-model/[^/\s]+", arn
+    )
+    if match is None or match[2] != config.cloud.region:
+        raise ConfigurationError(
+            "Reranking requires a foundation-model ARN in the configured region"
+        )
+
+
+def create_reranking_client(config: PipelineConfig) -> RerankRuntime:
+    """Use one SDK attempt and bounded sockets for an explicitly configured ranker."""
+    require_reranking_settings(config)
+    timeout = config.reranking.timeout_seconds
+    sdk_config = Config(
+        connect_timeout=min(CONNECT_TIMEOUT_SECONDS, timeout),
+        read_timeout=timeout,
+        retries={"total_max_attempts": 1, "mode": "standard"},
+    )
+    return cast(
+        RerankRuntime, create_aws_session(config).client("bedrock-agent-runtime", config=sdk_config)
+    )
 
 
 def create_aws_session(config: PipelineConfig) -> boto3.Session:
