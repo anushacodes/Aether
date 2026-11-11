@@ -1,0 +1,34 @@
+[project]
+name = "aws-s3-knowledge-engine"
+version = "0.1.0"
+description = "Evidence-backed search over a curated AWS S3 documentation snapshot"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "boto3>=1.35,<2",
+    "opensearch-py>=2.8,<4",
+    "pydantic>=2.10,<3",
+]
+
+[project.scripts]
+s3-rag = "rag.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "ruff>=0.11,<1"]
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["rag"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+

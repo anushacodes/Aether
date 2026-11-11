@@ -1,0 +1,41 @@
+{
+  "dataset_id": "s3-pilot-development-drafts-v1",
+  "corpus_id": "s3-pilot-v1",
+  "review_status": "source_checked_by_assistant_pending_human_review",
+  "note": "Development drafts based on inspected pinned passages; not independently verified benchmark labels. Never ingest this file as source evidence.",
+  "questions": [
+    {
+      "question_id": "pilot-001",
+      "query": "If I upload an object using an existing key in a versioning-enabled S3 bucket, is the previous object overwritten?",
+      "category": "direct_fact",
+      "permitted_guides": ["s3-userguide"],
+      "source_scope": "general-purpose",
+      "reference_answer": "Amazon S3 adds a new object version. The previous version remains in the bucket as a noncurrent version and can be restored.",
+      "reference_passage_ids": ["ug-how-versioning-works"],
+      "expected_answerability": "answerable",
+      "split": "development"
+    },
+    {
+      "question_id": "pilot-002",
+      "query": "In a versioning-enabled S3 bucket, how does deleting by key alone differ from deleting by key and a specific version ID?",
+      "category": "comparison",
+      "permitted_guides": ["s3-userguide", "s3-api"],
+      "source_scope": "general-purpose",
+      "reference_answer": "Deleting by key alone inserts a delete marker that becomes the current version. Specifying a version ID deletes that specific version; if it identifies the delete marker, removing the marker makes the object reappear.",
+      "reference_passage_ids": ["ug-delete-versioned-objects"],
+      "expected_answerability": "answerable",
+      "split": "development"
+    },
+    {
+      "question_id": "pilot-003",
+      "query": "Which query parameter does DeleteObject require to permanently remove one specific S3 object version?",
+      "category": "api_parameter",
+      "permitted_guides": ["s3-api"],
+      "source_scope": "general-purpose",
+      "reference_answer": "Use the versionId query parameter. It permanently deletes the specified version.",
+      "reference_passage_ids": ["api-deleteobject-description"],
+      "expected_answerability": "answerable",
+      "split": "development"
+    }
+  ]
+}

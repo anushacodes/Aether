@@ -1,0 +1,24 @@
+# Local corpus commands need no AWS credentials, Docker, or paid requests.
+opensearch_url = "http://localhost:9200"
+
+[chunking]
+strategy = "fixed"
+size = 500
+overlap = 75
+counting_method = "whitespace-estimate"
+preprocessing_version = "raw-v1"
+
+[retrieval]
+candidate_count = 20
+context_passages = 5
+context_budget = 4000
+rrf_constant = 60
+
+[models]
+embedding_model_id = "amazon.titan-embed-text-v2:0"
+embedding_dimensions = 1024
+normalize = true
+# generation_model_id must be selected after checking Bedrock access/pricing.
+
+[cloud]
+# region, profile, artifact_bucket, and development_model_budget_usd are unset.

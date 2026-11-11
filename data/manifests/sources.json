@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "revision": "af421087e43e33d41051a80356e285fa4c199b8a",
+  "sources": [
+    {
+      "source_id": "s3-userguide",
+      "guide": "s3-userguide",
+      "revision": "af421087e43e33d41051a80356e285fa4c199b8a",
+      "original_filename": "s3-userguide.txt",
+      "repository_url": "https://github.com/PranavMishra17/Metadata-Enrichment-with-LLMs-for-RAGs-Internal-Knowledge-Retrieval/blob/af421087e43e33d41051a80356e285fa4c199b8a/input_files/s3-userguide.txt",
+      "sha256": "766677814da909f8e12bfecab74ed4a7367972ec107100f36b26da38bae783d5",
+      "publisher_url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html"
+    },
+    {
+      "source_id": "s3-api",
+      "guide": "s3-api",
+      "revision": "af421087e43e33d41051a80356e285fa4c199b8a",
+      "original_filename": "s3-api.txt",
+      "repository_url": "https://github.com/PranavMishra17/Metadata-Enrichment-with-LLMs-for-RAGs-Internal-Knowledge-Retrieval/blob/af421087e43e33d41051a80356e285fa4c199b8a/input_files/s3-api.txt",
+      "sha256": "6f13c8cb27032bd12287d300d212ae33ccc5a765f67d1e7247c1cf0144fe08d5",
+      "publisher_url": "https://docs.aws.amazon.com/AmazonS3/latest/API/Welcome.html"
+    }
+  ]
+}

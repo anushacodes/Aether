@@ -1,0 +1,150 @@
+{
+  "source": {
+    "source_id": "s3-userguide",
+    "guide": "s3-userguide",
+    "revision": "af421087e43e33d41051a80356e285fa4c199b8a",
+    "original_filename": "s3-userguide.txt",
+    "repository_url": "https://github.com/PranavMishra17/Metadata-Enrichment-with-LLMs-for-RAGs-Internal-Knowledge-Retrieval/blob/af421087e43e33d41051a80356e285fa4c199b8a/input_files/s3-userguide.txt",
+    "sha256": "766677814da909f8e12bfecab74ed4a7367972ec107100f36b26da38bae783d5",
+    "publisher_url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html"
+  },
+  "section": {
+    "section_id": "ug-how-versioning-works",
+    "source_id": "s3-userguide",
+    "corpus_id": "s3-pilot-v1",
+    "heading_path": [
+      "Retaining multiple versions of objects with S3 Versioning",
+      "How S3 Versioning works"
+    ],
+    "raw_start": 2783482,
+    "raw_end": 2786131,
+    "raw_sha256": "9b4d744458b15d209d8a19afd36fbca7f5ca261eb9203aa68a7933bb936af7cd",
+    "raw_text": "How S3 Versioning works\nYou can use S3 Versioning to keep multiple versions of an object in one bucket so that you can\nrestore objects that are accidentally deleted or overwritten. For example, if you apply S3 Versioning\nto a bucket, the following changes occur:\n• If you delete an object, instead of removing the object permanently, Amazon S3 inserts a delete\nmarker, which becomes the current object version. You can then restore the previous version. For\nmore information, see Deleting object versions from a versioning-enabled bucket.\n• If you overwrite an object, Amazon S3 adds a new object version in the bucket. The previous\nversion remains in the bucket and becomes a noncurrent version. You can restore the previous\nversion.\nS3 Versioning API Version 2006-03-01 1646\n\nAmazon Simple Storage Service User Guide\nNote\nNormal Amazon S3 rates apply for every version of an object that is stored and transferred.\nEach version of an object is the entire object; it is not a diff from the previous version. Thus,\nif you have three versions of an object stored, you are charged for three objects.\nEach S3 bucket that you create has a versioning subresource associated with it. (For more\ninformation, see Bucket configuration options.) By default, your bucket is unversioned, and the\nversioning subresource stores the empty versioning configuration, as follows.\n<VersioningConfiguration xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\">\n</VersioningConfiguration>\nTo enable versioning, you can send a request to Amazon S3 with a versioning configuration that\nincludes an Enabled status.\n<VersioningConfiguration xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\">\n<Status>Enabled</Status>\n</VersioningConfiguration>\nTo suspend versioning, you set the status value to Suspended.\nNote\nWhen you enable versioning on a bucket for the first time, it might take a short amount of\ntime for the change to be fully propagated. We recommend that you wait for 15 minutes\nafter enabling versioning before issuing write operations (PUT or DELETE) on objects in the\nbucket.\nThe bucket owner and all authorized AWS Identity and Access Management (IAM) users can enable\nversioning. The bucket owner is the AWS account that created the bucket. For more information\nabout permissions, see Identity and Access Management for Amazon S3.\nFor more information about enabling and disabling S3 Versioning by using the AWS Management\nConsole, AWS Command Line Interface (AWS CLI), or REST API, see the section called “Enabling\nversioning on buckets”.\nS3 Versioning API Version 2006-03-01 1647\n\nAmazon Simple Storage Service User Guide\nTopics\n• Version IDs\n• Versioning workflows\n",
+    "text": "How S3 Versioning works\nYou can use S3 Versioning to keep multiple versions of an object in one bucket so that you can\nrestore objects that are accidentally deleted or overwritten. For example, if you apply S3 Versioning\nto a bucket, the following changes occur:\n• If you delete an object, instead of removing the object permanently, Amazon S3 inserts a delete\nmarker, which becomes the current object version. You can then restore the previous version. For\nmore information, see Deleting object versions from a versioning-enabled bucket.\n• If you overwrite an object, Amazon S3 adds a new object version in the bucket. The previous\nversion remains in the bucket and becomes a noncurrent version. You can restore the previous\nversion.\n\nNote\nNormal Amazon S3 rates apply for every version of an object that is stored and transferred.\nEach version of an object is the entire object; it is not a diff from the previous version. Thus,\nif you have three versions of an object stored, you are charged for three objects.\nEach S3 bucket that you create has a versioning subresource associated with it. (For more\ninformation, see Bucket configuration options.) By default, your bucket is unversioned, and the\nversioning subresource stores the empty versioning configuration, as follows.\n<VersioningConfiguration xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\">\n</VersioningConfiguration>\nTo enable versioning, you can send a request to Amazon S3 with a versioning configuration that\nincludes an Enabled status.\n<VersioningConfiguration xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\">\n<Status>Enabled</Status>\n</VersioningConfiguration>\nTo suspend versioning, you set the status value to Suspended.\nNote\nWhen you enable versioning on a bucket for the first time, it might take a short amount of\ntime for the change to be fully propagated. We recommend that you wait for 15 minutes\nafter enabling versioning before issuing write operations (PUT or DELETE) on objects in the\nbucket.\nThe bucket owner and all authorized AWS Identity and Access Management (IAM) users can enable\nversioning. The bucket owner is the AWS account that created the bucket. For more information\nabout permissions, see Identity and Access Management for Amazon S3.\nFor more information about enabling and disabling S3 Versioning by using the AWS Management\nConsole, AWS Command Line Interface (AWS CLI), or REST API, see the section called “Enabling\nversioning on buckets”.\n\nTopics\n• Version IDs\n• Versioning workflows\n",
+    "source_scope": "general-purpose",
+    "cleaning_version": "pdf-headers-v1",
+    "provenance": {
+      "source_id": "s3-userguide",
+      "guide": "s3-userguide",
+      "revision": "af421087e43e33d41051a80356e285fa4c199b8a",
+      "original_filename": "s3-userguide.txt",
+      "repository_url": "https://github.com/PranavMishra17/Metadata-Enrichment-with-LLMs-for-RAGs-Internal-Knowledge-Retrieval/blob/af421087e43e33d41051a80356e285fa4c199b8a/input_files/s3-userguide.txt",
+      "sha256": "766677814da909f8e12bfecab74ed4a7367972ec107100f36b26da38bae783d5",
+      "publisher_url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html"
+    }
+  },
+  "chunk": {
+    "chunk_id": "fixture-chunk-001",
+    "section_id": "ug-how-versioning-works",
+    "corpus_id": "s3-pilot-v1",
+    "original_text": "How S3 Versioning works\nYou can use S3 Versioning to keep multiple versions of an object in one bucket so that you can\nrestore objects that are accidentally deleted or overwritten. For example, if you apply S3 Versioning\nto a bucket, the following changes occur:\n• If you delete an object, instead of removing the object permanently, Amazon S3 inserts a delete\nmarker, which becomes the current object version. You can then restore the previous version. For\nmore information, see Deleting object versions from a versioning-enabled bucket.\n• If you overwrite an object, Amazon S3 adds a new object version in the bucket. The previous\nversion remains in the bucket and becomes a noncurrent version. You can restore the previous\nversion.\n\nNote\nNormal Amazon S3 rates apply for every version of an object that is stored and transferred.\nEach version of an object is the entire object; it is not a diff from the previous version. Thus,\nif you have three versions of an object stored, you are charged for three objects.\nEach S3 bucket that you create has a versioning subresource associated with it. (For more\ninformation, see Bucket configuration options.) By default, your bucket is unversioned, and the\nversioning subresource stores the empty versioning configuration, as follows.\n<VersioningConfiguration xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\">\n</VersioningConfiguration>\nTo enable versioning, you can send a request to Amazon S3 with a versioning configuration that\nincludes an Enabled status.\n<VersioningConfiguration xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\">\n<Status>Enabled</Status>\n</VersioningConfiguration>\nTo suspend versioning, you set the status value to Suspended.\nNote\nWhen you enable versioning on a bucket for the first time, it might take a short amount of\ntime for the change to be fully propagated. We recommend that you wait for 15 minutes\nafter enabling versioning before issuing write operations (PUT or DELETE) on objects in the\nbucket.\nThe bucket owner and all authorized AWS Identity and Access Management (IAM) users can enable\nversioning. The bucket owner is the AWS account that created the bucket. For more information\nabout permissions, see Identity and Access Management for Amazon S3.\nFor more information about enabling and disabling S3 Versioning by using the AWS Management\nConsole, AWS Command Line Interface (AWS CLI), or REST API, see the section called “Enabling\nversioning on buckets”.\n\nTopics\n• Version IDs\n• Versioning workflows\n",
+    "source_scope": "general-purpose",
+    "heading_path": [
+      "Retaining multiple versions of objects with S3 Versioning",
+      "How S3 Versioning works"
+    ],
+    "section_raw_start": 2783482,
+    "section_raw_end": 2786131,
+    "chunker_version": "illustrative-fixture-not-a-built-chunk",
+    "provenance": {
+      "source_id": "s3-userguide",
+      "guide": "s3-userguide",
+      "revision": "af421087e43e33d41051a80356e285fa4c199b8a",
+      "original_filename": "s3-userguide.txt",
+      "repository_url": "https://github.com/PranavMishra17/Metadata-Enrichment-with-LLMs-for-RAGs-Internal-Knowledge-Retrieval/blob/af421087e43e33d41051a80356e285fa4c199b8a/input_files/s3-userguide.txt",
+      "sha256": "766677814da909f8e12bfecab74ed4a7367972ec107100f36b26da38bae783d5",
+      "publisher_url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html"
+    }
+  },
+  "hit": {
+    "chunk": {
+      "chunk_id": "fixture-chunk-001",
+      "section_id": "ug-how-versioning-works",
+      "corpus_id": "s3-pilot-v1",
+      "original_text": "How S3 Versioning works\nYou can use S3 Versioning to keep multiple versions of an object in one bucket so that you can\nrestore objects that are accidentally deleted or overwritten. For example, if you apply S3 Versioning\nto a bucket, the following changes occur:\n• If you delete an object, instead of removing the object permanently, Amazon S3 inserts a delete\nmarker, which becomes the current object version. You can then restore the previous version. For\nmore information, see Deleting object versions from a versioning-enabled bucket.\n• If you overwrite an object, Amazon S3 adds a new object version in the bucket. The previous\nversion remains in the bucket and becomes a noncurrent version. You can restore the previous\nversion.\n\nNote\nNormal Amazon S3 rates apply for every version of an object that is stored and transferred.\nEach version of an object is the entire object; it is not a diff from the previous version. Thus,\nif you have three versions of an object stored, you are charged for three objects.\nEach S3 bucket that you create has a versioning subresource associated with it. (For more\ninformation, see Bucket configuration options.) By default, your bucket is unversioned, and the\nversioning subresource stores the empty versioning configuration, as follows.\n<VersioningConfiguration xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\">\n</VersioningConfiguration>\nTo enable versioning, you can send a request to Amazon S3 with a versioning configuration that\nincludes an Enabled status.\n<VersioningConfiguration xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\">\n<Status>Enabled</Status>\n</VersioningConfiguration>\nTo suspend versioning, you set the status value to Suspended.\nNote\nWhen you enable versioning on a bucket for the first time, it might take a short amount of\ntime for the change to be fully propagated. We recommend that you wait for 15 minutes\nafter enabling versioning before issuing write operations (PUT or DELETE) on objects in the\nbucket.\nThe bucket owner and all authorized AWS Identity and Access Management (IAM) users can enable\nversioning. The bucket owner is the AWS account that created the bucket. For more information\nabout permissions, see Identity and Access Management for Amazon S3.\nFor more information about enabling and disabling S3 Versioning by using the AWS Management\nConsole, AWS Command Line Interface (AWS CLI), or REST API, see the section called “Enabling\nversioning on buckets”.\n\nTopics\n• Version IDs\n• Versioning workflows\n",
+      "source_scope": "general-purpose",
+      "heading_path": [
+        "Retaining multiple versions of objects with S3 Versioning",
+        "How S3 Versioning works"
+      ],
+      "section_raw_start": 2783482,
+      "section_raw_end": 2786131,
+      "chunker_version": "illustrative-fixture-not-a-built-chunk",
+      "provenance": {
+        "source_id": "s3-userguide",
+        "guide": "s3-userguide",
+        "revision": "af421087e43e33d41051a80356e285fa4c199b8a",
+        "original_filename": "s3-userguide.txt",
+        "repository_url": "https://github.com/PranavMishra17/Metadata-Enrichment-with-LLMs-for-RAGs-Internal-Knowledge-Retrieval/blob/af421087e43e33d41051a80356e285fa4c199b8a/input_files/s3-userguide.txt",
+        "sha256": "766677814da909f8e12bfecab74ed4a7367972ec107100f36b26da38bae783d5",
+        "publisher_url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html"
+      }
+    },
+    "method": "bm25",
+    "rank": 1,
+    "score": 2.4
+  },
+  "answer": {
+    "answer": "Overwriting adds a new version; the previous version becomes noncurrent. [fixture-chunk-001]",
+    "citation_ids": [
+      "fixture-chunk-001"
+    ],
+    "status": "answered",
+    "evidence": [
+      {
+        "chunk_id": "fixture-chunk-001",
+        "section_id": "ug-how-versioning-works",
+        "corpus_id": "s3-pilot-v1",
+        "original_text": "How S3 Versioning works\nYou can use S3 Versioning to keep multiple versions of an object in one bucket so that you can\nrestore objects that are accidentally deleted or overwritten. For example, if you apply S3 Versioning\nto a bucket, the following changes occur:\n• If you delete an object, instead of removing the object permanently, Amazon S3 inserts a delete\nmarker, which becomes the current object version. You can then restore the previous version. For\nmore information, see Deleting object versions from a versioning-enabled bucket.\n• If you overwrite an object, Amazon S3 adds a new object version in the bucket. The previous\nversion remains in the bucket and becomes a noncurrent version. You can restore the previous\nversion.\n\nNote\nNormal Amazon S3 rates apply for every version of an object that is stored and transferred.\nEach version of an object is the entire object; it is not a diff from the previous version. Thus,\nif you have three versions of an object stored, you are charged for three objects.\nEach S3 bucket that you create has a versioning subresource associated with it. (For more\ninformation, see Bucket configuration options.) By default, your bucket is unversioned, and the\nversioning subresource stores the empty versioning configuration, as follows.\n<VersioningConfiguration xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\">\n</VersioningConfiguration>\nTo enable versioning, you can send a request to Amazon S3 with a versioning configuration that\nincludes an Enabled status.\n<VersioningConfiguration xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\">\n<Status>Enabled</Status>\n</VersioningConfiguration>\nTo suspend versioning, you set the status value to Suspended.\nNote\nWhen you enable versioning on a bucket for the first time, it might take a short amount of\ntime for the change to be fully propagated. We recommend that you wait for 15 minutes\nafter enabling versioning before issuing write operations (PUT or DELETE) on objects in the\nbucket.\nThe bucket owner and all authorized AWS Identity and Access Management (IAM) users can enable\nversioning. The bucket owner is the AWS account that created the bucket. For more information\nabout permissions, see Identity and Access Management for Amazon S3.\nFor more information about enabling and disabling S3 Versioning by using the AWS Management\nConsole, AWS Command Line Interface (AWS CLI), or REST API, see the section called “Enabling\nversioning on buckets”.\n\nTopics\n• Version IDs\n• Versioning workflows\n",
+        "source_scope": "general-purpose",
+        "heading_path": [
+          "Retaining multiple versions of objects with S3 Versioning",
+          "How S3 Versioning works"
+        ],
+        "section_raw_start": 2783482,
+        "section_raw_end": 2786131,
+        "chunker_version": "illustrative-fixture-not-a-built-chunk",
+        "provenance": {
+          "source_id": "s3-userguide",
+          "guide": "s3-userguide",
+          "revision": "af421087e43e33d41051a80356e285fa4c199b8a",
+          "original_filename": "s3-userguide.txt",
+          "repository_url": "https://github.com/PranavMishra17/Metadata-Enrichment-with-LLMs-for-RAGs-Internal-Knowledge-Retrieval/blob/af421087e43e33d41051a80356e285fa4c199b8a/input_files/s3-userguide.txt",
+          "sha256": "766677814da909f8e12bfecab74ed4a7367972ec107100f36b26da38bae783d5",
+          "publisher_url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html"
+        }
+      }
+    ],
+    "timings_ms": {
+      "retrieval": 12.5
+    }
+  },
+  "config": {
+    "chunking": {
+      "strategy": "fixed",
+      "size": 500,
+      "overlap": 75,
+      "counting_method": "whitespace-estimate",
+      "preprocessing_version": "raw-v1"
+    },
+    "retrieval": {
+      "candidate_count": 20,
+      "context_passages": 5,
+      "context_budget": 4000,
+      "rrf_constant": 60
+    },
+    "models": {
+      "embedding_model_id": "amazon.titan-embed-text-v2:0",
+      "embedding_dimensions": 1024,
+      "normalize": true,
+      "generation_model_id": null
+    },
+    "cloud": {
+      "region": null,
+      "profile": null,
+      "artifact_bucket": null,
+      "development_model_budget_usd": null
+    },
+    "opensearch_url": "http://localhost:9200/"
+  }
+}

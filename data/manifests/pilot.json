@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "corpus_id": "s3-pilot-v1",
+  "source_revision": "af421087e43e33d41051a80356e285fa4c199b8a",
+  "offset_unit": "unicode-codepoints-utf8-no-newline-normalization",
+  "sections": [
+    {
+      "section_id": "ug-how-versioning-works",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Retaining multiple versions of objects with S3 Versioning",
+        "How S3 Versioning works"
+      ],
+      "raw_start": 2783482,
+      "raw_end": 2786131,
+      "raw_sha256": "9b4d744458b15d209d8a19afd36fbca7f5ca261eb9203aa68a7933bb936af7cd",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete introductory subsection, including configuration XML and warnings; stops before the next Version IDs subsection."
+    },
+    {
+      "section_id": "ug-delete-versioned-objects",
+      "source_id": "s3-userguide",
+      "heading_path": [
+        "Deleting Amazon S3 objects",
+        "Deleting objects from a versioning-enabled bucket"
+      ],
+      "raw_start": 507119,
+      "raw_end": 508315,
+      "raw_sha256": "472c477d2d242cc84260ffd88be63a834f8f9153022fe7982272f9022b2425d6",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete enabled-bucket subsection. Suspended-bucket semantics remain out of the first pilot."
+    },
+    {
+      "section_id": "api-deleteobject-description",
+      "source_id": "s3-api",
+      "heading_path": [
+        "Amazon S3",
+        "DeleteObject",
+        "Description"
+      ],
+      "raw_start": 221486,
+      "raw_end": 222303,
+      "raw_sha256": "16b55353b22274f4ce0ccc7b04253fc691e4088cfdb4a865fb7a6be9f7f9e644",
+      "source_scope": "general-purpose",
+      "selection_reason": "Complete opening API description through MFA/HTTPS guidance; stops before the directory-bucket note. Permissions, request syntax, and response examples are deferred."
+    }
+  ],
+  "exclusions": [
+    "Standalone Glacier vault/archive and Outposts manuals",
+    "Directory buckets, S3 Express, and other special bucket variants",
+    "Versioning-suspended deletion behavior is outside this pilot",
+    "DeleteObject details beyond the opening description",
+    "All other sections until explicitly included by a later versioned manifest"
+  ]
+}
