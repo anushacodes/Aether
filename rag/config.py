@@ -101,6 +101,7 @@ class ApiConfig(Record):
     )
     max_concurrent_searches: int = Field(default=4, ge=1, le=8)
     requests_per_minute: int = Field(default=30, ge=1, le=120)
+    stream_timeout_seconds: int = Field(default=90, ge=5, le=180)
 
 
 class PipelineConfig(Record):

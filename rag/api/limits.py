@@ -17,6 +17,22 @@ class RequestLimitError(RuntimeError):
     """The local process has reached its configured rate or concurrency capacity."""
 
 
+class SearchLease:
+    """Keep a slot reserved until its actual SDK worker ends, even after browser disconnect."""
+
+    def __init__(self, slots: threading.BoundedSemaphore) -> None:
+        self._slots = slots
+        self._closed = False
+        self._lock = threading.Lock()
+
+    def close(self) -> None:
+        """Release ownership once, safely across worker and response cleanup paths."""
+        with self._lock:
+            if not self._closed:
+                self._slots.release()
+                self._closed = True
+
+
 class SearchLimiter:
     """A single-process development limiter; hosted replicas require a shared limit."""
 
@@ -30,6 +46,14 @@ class SearchLimiter:
     @contextmanager
     def admit(self) -> Iterator[None]:
         """Reject excess work immediately and release its slot when the request ends."""
+        lease = self.acquire()
+        try:
+            yield
+        finally:
+            lease.close()
+
+    def acquire(self) -> SearchLease:
+        """Transfer slot ownership to a synchronous request or a streaming SDK worker."""
         if not self._slots.acquire(blocking=False):
             raise RequestLimitError("search_busy")
         try:
@@ -40,6 +64,8 @@ class SearchLimiter:
                 if len(self._arrivals) >= self._rate_limit:
                     raise RequestLimitError("rate_limited")
                 self._arrivals.append(now)
-            yield
-        finally:
+            return SearchLease(self._slots)
+        except Exception:
+            # Release failed admission, then preserve the original error for the API boundary.
             self._slots.release()
+            raise

@@ -13,10 +13,11 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from opensearchpy import OpenSearch, TransportError
 from starlette.middleware.base import RequestResponseEndpoint
-from starlette.responses import Response
+from starlette.responses import Response, StreamingResponse
 
 from rag import __version__
 from rag.api.limits import RequestLimitError, SearchLimiter
+from rag.api.stream import streaming_response
 from rag.aws_clients import create_bedrock_client
 from rag.config import ConfigurationError, PipelineConfig, load_config
 from rag.embeddings import Embedder
@@ -126,6 +127,21 @@ def create_app(config: PipelineConfig | None = None) -> FastAPI:
         """Use the same original-context, generation, and citation path as the CLI."""
         with _dependency_errors(), limiter.admit():
             return answer_question(client, settings, body)
+
+    @application.post("/search/stream")
+    async def streamed_answer(
+        body: SearchRequest,
+        request: Request,
+        client: Annotated[OpenSearch, Depends(get_search_client)],
+    ) -> StreamingResponse:
+        """Reserve bounded capacity before returning a POST-capable SSE response."""
+        with _dependency_errors():
+            lease = limiter.acquire()
+        try:
+            return streaming_response(body, request, client, settings, lease)
+        except Exception:
+            lease.close()
+            raise
 
     return application
 
