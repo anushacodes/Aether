@@ -33,6 +33,12 @@ build/
 data/raw/
 data/processed/
 data/cache/
+data/snapshots/
 reports/runs/
 *.sqlite3
 *.sqlite3-*
+*.worker.lock
+
+# Local UI review captures and machine preferences
+.impeccable/review/
+.impeccable/config.local.json

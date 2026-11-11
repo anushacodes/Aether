@@ -30,7 +30,7 @@ concurrency = 2
 max_requests_per_run = 500
 
 [index]
-name = "s3-rag-pilot"
+name = "s3-rag-active"
 
 [api]
 allowed_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]

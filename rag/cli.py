@@ -30,6 +30,7 @@ from rag.eval.runs import run_retrieval_evaluation
 from rag.indexing import bulk_index_chunks, ensure_index, load_chunks
 from rag.models import ChunkRecord, SearchRequest, SearchScope, SectionRecord, SubsetManifest
 from rag.pipeline import answer_question, retrieve
+from rag.publication import active_index, build_snapshot, publish_snapshot
 from rag.search_store import check_search_store, create_search_client
 
 
@@ -106,6 +107,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--with-embeddings", action="store_true", help="Generate/reuse Bedrock vectors"
     )
     build.add_argument("--manifest", type=Path, default=Path("data/processed/pilot-build.json"))
+    publish = index_operations.add_parser(
+        "publish", help="Build a verified immutable snapshot and switch the active alias"
+    )
+    publish.add_argument("--sources", type=Path, default=Path("data/manifests/sources.json"))
+    publish.add_argument("--subset", type=Path, default=Path("data/manifests/pilot.json"))
+    publish.add_argument("--raw-dir", type=Path, default=Path("data/raw"))
+    publish.add_argument("--with-embeddings", action="store_true")
     corpus = commands.add_parser(
         "corpus", help="Fetch, inspect, and extract pinned source snapshots"
     )
@@ -181,6 +189,48 @@ def _run_corpus(args: argparse.Namespace, config: PipelineConfig) -> None:
             f"  {section.section_id}: {len(section.raw_text)} raw characters, "
             f"{len(section.text)} cleaned characters"
         )
+
+
+def _run_index(args: argparse.Namespace, config: PipelineConfig) -> None:
+    """Keep staging and publication separate from mutable development index commands."""
+    if args.operation != "publish" and config.index.name == config.publication.alias:
+        raise ValueError(
+            "Use 'index publish' for the active alias; mutable builds need a separate index"
+        )
+    with ExitStack() as stack:
+        client = stack.enter_context(create_search_client(config))
+        if args.operation == "create":
+            result = {"index": config.index.name, "created": ensure_index(client, config)}
+        else:
+            embedder = None
+            if args.with_embeddings:
+                runtime = stack.enter_context(closing(create_bedrock_client(config)))
+                embedder = Embedder(config, runtime)
+            if args.operation == "publish":
+                base_revision = active_index(client, config.publication.alias)
+                snapshot = build_snapshot(
+                    client,
+                    config,
+                    load_sources(args.sources),
+                    SubsetManifest.model_validate_json(args.subset.read_bytes()),
+                    args.raw_dir,
+                    uuid4().hex,
+                    embedder=embedder,
+                )
+                publish_snapshot(client, config, snapshot, base_revision)
+                result = snapshot.model_dump(mode="json") | {"alias": config.publication.alias}
+            else:
+                chunks = load_chunks(args.chunks)
+                vectors = embedder.embed_chunks(chunks) if embedder else None
+                count = bulk_index_chunks(client, config, chunks, vectors)
+                manifest = build_manifest(config, chunks, has_vectors=vectors is not None)
+                save_build_manifest(args.manifest, manifest)
+                result = {
+                    "index": config.index.name,
+                    "indexed": count,
+                    "vectors": vectors is not None,
+                }
+    print(json.dumps(result, indent=2))
 
 
 def _run_evaluation(args: argparse.Namespace, config: PipelineConfig) -> int:
@@ -295,24 +345,7 @@ def main(argv: list[str] | None = None) -> int:
                 )
             )
         elif args.command == "index":
-            with create_search_client(config) as client:
-                if args.operation == "create":
-                    result = {"index": config.index.name, "created": ensure_index(client, config)}
-                else:
-                    chunks = load_chunks(args.chunks)
-                    vectors = None
-                    if args.with_embeddings:
-                        with closing(create_bedrock_client(config)) as runtime:
-                            vectors = Embedder(config, runtime).embed_chunks(chunks)
-                    count = bulk_index_chunks(client, config, chunks, vectors)
-                    manifest = build_manifest(config, chunks, has_vectors=vectors is not None)
-                    save_build_manifest(args.manifest, manifest)
-                    result = {
-                        "index": config.index.name,
-                        "indexed": count,
-                        "vectors": vectors is not None,
-                    }
-            print(json.dumps(result, indent=2))
+            _run_index(args, config)
         else:
             _run_corpus(args, config)
     except TransportError as error:
@@ -324,6 +357,8 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, ValueError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1
+    except KeyboardInterrupt:
+        return 130
     return 0
 
 
