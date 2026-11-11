@@ -5,15 +5,21 @@ description = "Evidence-backed search over a curated AWS S3 documentation snapsh
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "boto3>=1.35,<2",
+    "fastapi>=0.115,<1",
     "opensearch-py>=2.8,<4",
     "pydantic>=2.10,<3",
+    "uvicorn>=0.34,<1",
 ]
 
 [project.scripts]
 s3-rag = "rag.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=8,<10", "ruff>=0.11,<1"]
+dev = [
+    "httpx2>=2.16.0",
+    "pytest>=8,<10",
+    "ruff>=0.11,<1",
+]
 
 [build-system]
 requires = ["hatchling>=1.27,<2"]

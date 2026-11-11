@@ -1,4 +1,4 @@
-.PHONY: setup help lint format test check search-up search-down search-check
+.PHONY: setup help lint format test check search-up search-down search-check api
 
 setup:
 	uv sync --locked
@@ -26,3 +26,6 @@ search-down:
 
 search-check:
 	uv run --locked s3-rag --config config.toml search check
+
+api:
+	uv run --locked uvicorn rag.api.app:app --host 127.0.0.1 --port 8000 --reload --reload-dir rag
