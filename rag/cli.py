@@ -8,6 +8,7 @@ import sys
 import time
 from collections import Counter
 from contextlib import ExitStack, closing
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from uuid import uuid4
 
@@ -40,6 +41,7 @@ from rag.ingestion import ingestion_catalog, submit_ingestion
 from rag.jobs import IngestionRequest, JobStore
 from rag.models import ChunkRecord, SearchRequest, SearchScope, SectionRecord, SubsetManifest
 from rag.pipeline import answer_question, retrieve
+from rag.provider_check import CheckPrices, run_provider_check
 from rag.publication import active_index, build_snapshot, publish_snapshot
 from rag.search_store import check_search_store, create_search_client
 from rag.snapshots import retained_snapshots, rollback_snapshot
@@ -52,6 +54,17 @@ def _add_question_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--guide", action="append", choices=("s3-userguide", "s3-api"))
     parser.add_argument("--corpus-id")
     parser.add_argument("--mode", choices=("bm25", "vector", "hybrid"), default="bm25")
+
+
+def _cost_amount(value: str) -> Decimal:
+    """Turn invalid currency input into an ordinary parser error before any side effects."""
+    try:
+        amount = Decimal(value)
+    except InvalidOperation as error:
+        raise argparse.ArgumentTypeError("Cost must be a positive finite USD amount") from error
+    if not amount.is_finite() or amount <= 0:
+        raise argparse.ArgumentTypeError("Cost must be a positive finite USD amount")
+    return amount
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -87,6 +100,23 @@ def build_parser() -> argparse.ArgumentParser:
     config.add_argument("--cloud", action="store_true", help="Require paid-call configuration")
     config.add_argument(
         "--require-bucket", action="store_true", help="Also require an artifact bucket"
+    )
+    provider = commands.add_parser(
+        "bedrock-check", help="Explicitly run a bounded, priced real-provider capability check"
+    )
+    provider.add_argument(
+        "--allow-paid", action="store_true", help="Allow three inference attempts"
+    )
+    provider.add_argument(
+        "--prices", type=Path, required=True, help="Current exact-model price JSON"
+    )
+    provider.add_argument("--max-cost-usd", type=_cost_amount, required=True)
+    provider.add_argument("--chunks", type=Path, default=Path("data/processed/pilot-chunks.jsonl"))
+    provider.add_argument(
+        "--chunk-id", required=True, help="One original chunk of at most 4000 characters"
+    )
+    provider.add_argument(
+        "--output", type=Path, required=True, help="New local report/cache directory"
     )
     search = commands.add_parser("search", help="Check the configured OpenSearch service")
     search_operations = search.add_subparsers(dest="operation", required=True)
@@ -494,6 +524,20 @@ def main(argv: list[str] | None = None) -> int:
             if args.cloud or args.require_bucket:
                 config.require_cloud_settings(require_bucket=args.require_bucket)
             print("Configuration valid (no network requests made).")
+        elif args.command == "bedrock-check":
+            if not args.allow_paid:
+                raise ValueError("Provider check requires explicit --allow-paid")
+            prices = CheckPrices.model_validate_json(args.prices.read_text(encoding="utf-8"))
+            chunks = [
+                chunk for chunk in load_chunks(args.chunks) if chunk.chunk_id == args.chunk_id
+            ]
+            if len(chunks) != 1:
+                raise ValueError("Select exactly one chunk ID present in the input")
+            report = run_provider_check(
+                config, chunks[0], prices, args.max_cost_usd, args.output, allow_paid=True
+            )
+            print(json.dumps(report, indent=2))
+            return 0 if report["status"] == "passed" else 1
         elif args.command == "search":
             with create_search_client(config) as client:
                 if args.operation == "check":
