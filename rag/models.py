@@ -186,6 +186,14 @@ class RetrievedHit(Record):
     score: float = Field(allow_inf_nan=False)
 
 
+class RetrievalResult(Record):
+    """Expose normalized candidates and measured stage timings to CLI, API, and evals."""
+
+    hits: list[RetrievedHit]
+    mode: Literal["bm25", "vector", "hybrid"]
+    timings_ms: dict[str, Duration]
+
+
 class SearchScope(Record):
     """Authoritative restrictions passed separately from untrusted question text."""
 
