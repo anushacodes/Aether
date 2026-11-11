@@ -24,7 +24,7 @@ from rag.corpus import (
 from rag.embeddings import Embedder, embedding_manifest
 from rag.indexing import bulk_index_chunks, ensure_index, load_chunks
 from rag.models import ChunkRecord, SearchScope, SectionRecord, SubsetManifest
-from rag.retrieval import bm25_search
+from rag.retrieval import bm25_search, vector_search
 from rag.search_store import check_search_store, create_search_client
 
 
@@ -50,6 +50,7 @@ def build_parser() -> argparse.ArgumentParser:
     query.add_argument("query")
     query.add_argument("--guide", action="append", choices=("s3-userguide", "s3-api"))
     query.add_argument("--corpus-id")
+    query.add_argument("--mode", choices=("bm25", "vector"), default="bm25")
     embed = commands.add_parser(
         "embed", help="Embed chunk records through Bedrock with a disk cache"
     )
@@ -162,7 +163,13 @@ def main(argv: list[str] | None = None) -> int:
                         permitted_guides=args.guide or ["s3-userguide", "s3-api"],
                         corpus_id=args.corpus_id,
                     )
-                    hits = bm25_search(client, config, args.query, scope)
+                    if args.mode == "bm25":
+                        hits = bm25_search(client, config, args.query, scope)
+                    else:
+                        vector = Embedder(config, create_bedrock_client(config)).embed_text(
+                            args.query
+                        )
+                        hits = vector_search(client, config, vector, scope)
                     result = {"hits": [hit.model_dump(mode="json") for hit in hits]}
             print(json.dumps(result, indent=2))
         elif args.command == "embed":

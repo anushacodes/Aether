@@ -56,12 +56,23 @@ def ensure_index(client: OpenSearch, config: PipelineConfig) -> bool:
     """Create the configured index, or reject incompatible existing embedding metadata."""
     name = config.index.name
     if client.indices.exists(index=name):
-        mapping = client.indices.get_mapping(index=name)
-        if mapping[name]["mappings"].get("_meta") != _index_metadata(config):
-            raise ValueError(f"Index {name!r} has incompatible model or preprocessing settings")
+        verify_index(client, config)
         return False
     client.indices.create(index=name, body=index_definition(config))
     return True
+
+
+def verify_index(client: OpenSearch, config: PipelineConfig) -> None:
+    """Reject query/index embedding-space mismatches without creating or changing an index."""
+    mapping = client.indices.get_mapping(index=config.index.name)
+    # An alias resolves to its concrete index name in get_mapping responses.
+    if len(mapping) != 1:
+        raise ValueError("Search requires exactly one compatible corpus snapshot")
+    actual = next(iter(mapping.values()))["mappings"].get("_meta")
+    if actual != _index_metadata(config):
+        raise ValueError(
+            f"Index {config.index.name!r} has incompatible model or preprocessing settings"
+        )
 
 
 def load_chunks(path: Path) -> list[ChunkRecord]:

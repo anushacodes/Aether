@@ -7,6 +7,8 @@ from typing import Any, Literal
 from opensearchpy import OpenSearch
 
 from rag.config import PipelineConfig
+from rag.embeddings import validate_embedding
+from rag.indexing import verify_index
 from rag.models import ChunkRecord, RetrievedHit, SearchScope
 
 MAX_QUERY_CHARACTERS = 2000
@@ -73,3 +75,28 @@ def bm25_search(
         },
     )
     return _normalize_hits(response, "bm25", scope)
+
+
+def vector_search(
+    client: OpenSearch, config: PipelineConfig, vector: list[float], scope: SearchScope
+) -> list[RetrievedHit]:
+    """Use Lucene's filtered kNN query in the exact configured embedding space."""
+    validated = validate_embedding(vector, config.models.embedding_dimensions)
+    verify_index(client, config)
+    response = client.search(
+        index=config.index.name,
+        body={
+            "size": config.retrieval.candidate_count,
+            "_source": ["record"],
+            "query": {
+                "knn": {
+                    "embedding": {
+                        "vector": validated,
+                        "k": config.retrieval.candidate_count,
+                        "filter": {"bool": {"filter": scope_filters(scope)}},
+                    }
+                }
+            },
+        },
+    )
+    return _normalize_hits(response, "vector", scope)
