@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from time import perf_counter
 from typing import Literal
@@ -19,20 +20,37 @@ from rag.retrieval import bm25_search, vector_search
 
 
 def _keyword_stage(
-    client: OpenSearch, config: PipelineConfig, query: str, scope: SearchScope
+    client: OpenSearch,
+    config: PipelineConfig,
+    query: str,
+    scope: SearchScope,
+    checkpoint: Callable[[], None] | None = None,
 ) -> tuple[list[RetrievedHit], dict[str, float]]:
     started = perf_counter()
-    hits = bm25_search(client, config, query, scope)
+    if checkpoint is None:
+        hits = bm25_search(client, config, query, scope)
+    else:
+        hits = bm25_search(client, config, query, scope, checkpoint=checkpoint)
     return hits, {"bm25": (perf_counter() - started) * 1000}
 
 
 def _vector_stage(
-    client: OpenSearch, config: PipelineConfig, query: str, scope: SearchScope, embedder: Embedder
+    client: OpenSearch,
+    config: PipelineConfig,
+    query: str,
+    scope: SearchScope,
+    embedder: Embedder,
+    checkpoint: Callable[[], None] | None = None,
 ) -> tuple[list[RetrievedHit], dict[str, float]]:
     started = perf_counter()
+    if checkpoint is not None:
+        checkpoint()
     vector = embedder.embed_text(query)
     embedded = perf_counter()
-    hits = vector_search(client, config, vector, scope)
+    if checkpoint is None:
+        hits = vector_search(client, config, vector, scope)
+    else:
+        hits = vector_search(client, config, vector, scope, checkpoint=checkpoint)
     return hits, {
         "embedding": (embedded - started) * 1000,
         "vector": (perf_counter() - embedded) * 1000,
@@ -46,22 +64,28 @@ def retrieve(
     scope: SearchScope,
     mode: Literal["bm25", "vector", "hybrid"],
     embedder: Embedder | None = None,
+    *,
+    checkpoint: Callable[[], None] | None = None,
 ) -> RetrievalResult:
     """Run the requested retrievers; hybrid starts independent work concurrently."""
     query = SearchRequest(query=query, mode=mode, scope=scope).query
     started = perf_counter()
+    if checkpoint is not None:
+        checkpoint()
     config = resolve_read_config(client, config)
     if mode == "bm25":
-        hits, timings = _keyword_stage(client, config, query, scope)
+        hits, timings = _keyword_stage(client, config, query, scope, checkpoint)
     elif mode in {"vector", "hybrid"}:
         if embedder is None:
             raise ValueError("Vector and hybrid retrieval require a configured embedder")
         if mode == "vector":
-            hits, timings = _vector_stage(client, config, query, scope, embedder)
+            hits, timings = _vector_stage(client, config, query, scope, embedder, checkpoint)
         else:
             with ThreadPoolExecutor(max_workers=2) as executor:
-                keyword = executor.submit(_keyword_stage, client, config, query, scope)
-                vector = executor.submit(_vector_stage, client, config, query, scope, embedder)
+                keyword = executor.submit(_keyword_stage, client, config, query, scope, checkpoint)
+                vector = executor.submit(
+                    _vector_stage, client, config, query, scope, embedder, checkpoint
+                )
                 keyword_hits, keyword_timings = keyword.result()
                 vector_hits, vector_timings = vector.result()
             fusion_started = perf_counter()
@@ -89,6 +113,12 @@ def answer_question(
     embedder: Embedder | None = None,
 ) -> AnswerResult:
     """Use the shared retrieval path and create a generation client only when evidence exists."""
+    if request.workflow:
+        from rag.workflow import answer_with_workflow
+
+        if embedder is not None:
+            raise ValueError("Workflow owns its budgeted embedder; pass a runtime instead")
+        return answer_with_workflow(client, config, request, runtime)
     owns_runtime = False
     try:
         if request.mode != "bm25" and embedder is None:

@@ -7,7 +7,7 @@ from collections.abc import Iterator
 from contextlib import ExitStack, closing
 from dataclasses import dataclass
 from time import perf_counter
-from typing import Literal
+from typing import Literal, Protocol
 
 from opensearchpy import OpenSearch
 
@@ -32,6 +32,14 @@ class GenerationStreamError(RuntimeError):
     """A provider stream ended early, exceeded bounds, or reported an embedded failure."""
 
 
+class CancellationSignal(Protocol):
+    """Streaming only needs to observe cancellation; its owner controls the signal."""
+
+    def is_set(self) -> bool:
+        """Report whether the owning request or workflow stopped."""
+        ...
+
+
 @dataclass(frozen=True)
 class StreamEvent:
     """One transport-independent search event; tokens are provisional until done."""
@@ -45,7 +53,7 @@ def stream_model_text(
     config: PipelineConfig,
     question: str,
     context: AssembledContext,
-    cancelled: threading.Event,
+    cancelled: CancellationSignal,
 ) -> Iterator[StreamEvent]:
     """Normalize SDK events and close the provider stream on error or cancellation."""
     if cancelled.is_set():
@@ -86,6 +94,11 @@ def stream_answer(
     runtime: BedrockRuntime | None = None,
 ) -> Iterator[StreamEvent]:
     """Reuse normal retrieval/context/citation logic and stop scheduling work after disconnect."""
+    if request.workflow:
+        from rag.workflow import stream_with_workflow
+
+        yield from stream_with_workflow(client, config, request, cancelled, runtime)
+        return
     with ExitStack() as stack:
         if cancelled.is_set():
             return

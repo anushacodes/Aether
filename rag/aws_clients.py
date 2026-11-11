@@ -40,14 +40,19 @@ def create_aws_session(config: PipelineConfig) -> boto3.Session:
 
 
 def create_bedrock_client(
-    config: PipelineConfig, *, require_generation: bool = False
+    config: PipelineConfig,
+    *,
+    require_generation: bool = False,
+    max_attempts: int = MAX_REQUEST_ATTEMPTS,
 ) -> BedrockRuntime:
     """Require a deliberate allowance before discovering credentials or invoking a model."""
     config.require_cloud_settings(require_generation=require_generation)
+    if not 1 <= max_attempts <= MAX_REQUEST_ATTEMPTS:
+        raise ValueError("Model SDK attempts must be between one and three")
     session = create_aws_session(config)
     sdk_config = Config(
         connect_timeout=CONNECT_TIMEOUT_SECONDS,
         read_timeout=READ_TIMEOUT_SECONDS,
-        retries={"total_max_attempts": MAX_REQUEST_ATTEMPTS, "mode": "standard"},
+        retries={"total_max_attempts": max_attempts, "mode": "standard"},
     )
     return cast(BedrockRuntime, session.client("bedrock-runtime", config=sdk_config))

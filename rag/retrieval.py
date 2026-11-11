@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any, Literal
 
 from opensearchpy import OpenSearch
@@ -50,10 +51,17 @@ def _normalize_hits(
 
 
 def bm25_search(
-    client: OpenSearch, config: PipelineConfig, query: str, scope: SearchScope
+    client: OpenSearch,
+    config: PipelineConfig,
+    query: str,
+    scope: SearchScope,
+    *,
+    checkpoint: Callable[[], None] | None = None,
 ) -> list[RetrievedHit]:
     """Rank matching original passages and headings using OpenSearch BM25."""
     _validate_query(query)
+    if checkpoint is not None:
+        checkpoint()
     response = client.search(
         index=config.index.name,
         body={
@@ -78,11 +86,20 @@ def bm25_search(
 
 
 def vector_search(
-    client: OpenSearch, config: PipelineConfig, vector: list[float], scope: SearchScope
+    client: OpenSearch,
+    config: PipelineConfig,
+    vector: list[float],
+    scope: SearchScope,
+    *,
+    checkpoint: Callable[[], None] | None = None,
 ) -> list[RetrievedHit]:
     """Use Lucene's filtered kNN query in the exact configured embedding space."""
     validated = validate_embedding(vector, config.models.embedding_dimensions)
+    if checkpoint is not None:
+        checkpoint()
     verify_index(client, config)
+    if checkpoint is not None:
+        checkpoint()
     response = client.search(
         index=config.index.name,
         body={
