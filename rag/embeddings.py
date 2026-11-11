@@ -7,11 +7,13 @@ import json
 import math
 import sqlite3
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from pathlib import Path
 
 from rag.aws_clients import BedrockRuntime
 from rag.config import ModelConfig, PipelineConfig
+from rag.models import ChunkRecord
 
 SQLITE_TIMEOUT_SECONDS = 10
 MAX_TITAN_INPUT_CHARACTERS = 50_000
@@ -142,3 +144,32 @@ class Embedder:
         with self._counter_lock:
             self.input_tokens += payload.get("inputTextTokenCount", 0)
         return vector
+
+    def embed_chunks(self, chunks: list[ChunkRecord]) -> dict[str, list[float]]:
+        """Bound concurrency, deduplicate exact inputs, and preserve caller ordering."""
+        inputs = list(dict.fromkeys(chunk.original_text for chunk in chunks))
+        with ThreadPoolExecutor(max_workers=self.config.embedding.concurrency) as executor:
+            vectors = list(executor.map(self.embed_text, inputs))
+        by_text = dict(zip(inputs, vectors, strict=True))
+        return {chunk.chunk_id: by_text[chunk.original_text] for chunk in chunks}
+
+
+def embedding_manifest(
+    chunks: list[ChunkRecord], config: PipelineConfig
+) -> list[dict[str, object]]:
+    """Record reusable cache references beside the exact source/chunker identity."""
+    return [
+        {
+            "chunk_id": chunk.chunk_id,
+            "corpus_id": chunk.corpus_id,
+            "chunker_version": chunk.chunker_version,
+            "cache_key": embedding_cache_key(
+                chunk.original_text, config.models, config.chunking.preprocessing_version
+            ),
+            "model_id": config.models.embedding_model_id,
+            "dimensions": config.models.embedding_dimensions,
+            "normalize": config.models.normalize,
+            "preprocessing_version": config.chunking.preprocessing_version,
+        }
+        for chunk in chunks
+    ]

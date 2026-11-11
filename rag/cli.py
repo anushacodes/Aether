@@ -7,9 +7,11 @@ import json
 import sys
 from pathlib import Path
 
+from botocore.exceptions import BotoCoreError, ClientError
 from opensearchpy import TransportError
 
 from rag import __version__
+from rag.aws_clients import create_bedrock_client
 from rag.chunking import chunk_inventory, chunk_section
 from rag.config import ChunkingConfig, PipelineConfig, load_config
 from rag.corpus import (
@@ -19,6 +21,7 @@ from rag.corpus import (
     load_sources,
     write_jsonl,
 )
+from rag.embeddings import Embedder, embedding_manifest
 from rag.models import ChunkRecord, SectionRecord, SubsetManifest
 from rag.search_store import check_search_store, create_search_client
 
@@ -41,6 +44,11 @@ def build_parser() -> argparse.ArgumentParser:
     search_operations.add_parser(
         "check", help="Check health, index/search a temporary document, then remove it"
     )
+    embed = commands.add_parser(
+        "embed", help="Embed chunk records through Bedrock with a disk cache"
+    )
+    embed.add_argument("--chunks", type=Path, default=Path("data/processed/pilot-chunks.jsonl"))
+    embed.add_argument("--output", type=Path, default=Path("data/processed/pilot-embeddings.jsonl"))
     corpus = commands.add_parser(
         "corpus", help="Fetch, inspect, and extract pinned source snapshots"
     )
@@ -135,10 +143,33 @@ def main(argv: list[str] | None = None) -> int:
             with create_search_client(config) as client:
                 result = check_search_store(client)
             print(json.dumps(result, indent=2))
+        elif args.command == "embed":
+            chunks = [
+                ChunkRecord.model_validate_json(line)
+                for line in args.chunks.read_bytes().splitlines()
+                if line.strip()
+            ]
+            embedder = Embedder(config, create_bedrock_client(config))
+            embedder.embed_chunks(chunks)
+            write_jsonl(args.output, embedding_manifest(chunks, config))
+            print(
+                json.dumps(
+                    {
+                        "chunks": len(chunks),
+                        "requests": embedder.request_count,
+                        "cache_hits": embedder.cache_hits,
+                        "input_tokens": embedder.input_tokens,
+                    },
+                    indent=2,
+                )
+            )
         else:
             _run_corpus(args, config)
     except TransportError as error:
         print(f"Error: OpenSearch request failed: {error}", file=sys.stderr)
+        return 1
+    except (BotoCoreError, ClientError) as error:
+        print(f"Error: AWS request failed: {error}", file=sys.stderr)
         return 1
     except (OSError, ValueError) as error:
         print(f"Error: {error}", file=sys.stderr)
