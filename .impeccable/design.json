@@ -1,0 +1,299 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-11T06:08:08.704613+00:00",
+  "title": "Design System: S3 Knowledge Engine",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Documentation Blue",
+        "tonalRamp": [
+          "oklch(15.00% 0.15047 259.36)",
+          "oklch(26.43% 0.15047 259.36)",
+          "oklch(37.86% 0.15047 259.36)",
+          "oklch(49.29% 0.15047 259.36)",
+          "oklch(60.71% 0.15047 259.36)",
+          "oklch(72.14% 0.15047 259.36)",
+          "oklch(83.57% 0.15047 259.36)",
+          "oklch(95.00% 0.15047 259.36)"
+        ]
+      },
+      "primary-hover": {
+        "role": "primary",
+        "displayName": "Deep Blue",
+        "tonalRamp": [
+          "oklch(15.00% 0.12910 259.44)",
+          "oklch(26.43% 0.12910 259.44)",
+          "oklch(37.86% 0.12910 259.44)",
+          "oklch(49.29% 0.12910 259.44)",
+          "oklch(60.71% 0.12910 259.44)",
+          "oklch(72.14% 0.12910 259.44)",
+          "oklch(83.57% 0.12910 259.44)",
+          "oklch(95.00% 0.12910 259.44)"
+        ]
+      },
+      "primary-soft": {
+        "role": "primary",
+        "displayName": "Pale Blue",
+        "tonalRamp": [
+          "oklch(15.00% 0.01540 257.20)",
+          "oklch(26.43% 0.01540 257.20)",
+          "oklch(37.86% 0.01540 257.20)",
+          "oklch(49.29% 0.01540 257.20)",
+          "oklch(60.71% 0.01540 257.20)",
+          "oklch(72.14% 0.01540 257.20)",
+          "oklch(83.57% 0.01540 257.20)",
+          "oklch(95.00% 0.01540 257.20)"
+        ]
+      },
+      "citation-hover": {
+        "role": "primary",
+        "displayName": "Citation Blue Wash",
+        "tonalRamp": [
+          "oklch(15.00% 0.02994 256.01)",
+          "oklch(26.43% 0.02994 256.01)",
+          "oklch(37.86% 0.02994 256.01)",
+          "oklch(49.29% 0.02994 256.01)",
+          "oklch(60.71% 0.02994 256.01)",
+          "oklch(72.14% 0.02994 256.01)",
+          "oklch(83.57% 0.02994 256.01)",
+          "oklch(95.00% 0.02994 256.01)"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Slate Ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.02541 248.74)",
+          "oklch(26.43% 0.02541 248.74)",
+          "oklch(37.86% 0.02541 248.74)",
+          "oklch(49.29% 0.02541 248.74)",
+          "oklch(60.71% 0.02541 248.74)",
+          "oklch(72.14% 0.02541 248.74)",
+          "oklch(83.57% 0.02541 248.74)",
+          "oklch(95.00% 0.02541 248.74)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Slate Secondary",
+        "tonalRamp": [
+          "oklch(15.00% 0.03043 248.45)",
+          "oklch(26.43% 0.03043 248.45)",
+          "oklch(37.86% 0.03043 248.45)",
+          "oklch(49.29% 0.03043 248.45)",
+          "oklch(60.71% 0.03043 248.45)",
+          "oklch(72.14% 0.03043 248.45)",
+          "oklch(83.57% 0.03043 248.45)",
+          "oklch(95.00% 0.03043 248.45)"
+        ]
+      },
+      "ground": {
+        "role": "neutral",
+        "displayName": "Cool Ground",
+        "tonalRamp": [
+          "oklch(15.00% 0.00287 264.54)",
+          "oklch(26.43% 0.00287 264.54)",
+          "oklch(37.86% 0.00287 264.54)",
+          "oklch(49.29% 0.00287 264.54)",
+          "oklch(60.71% 0.00287 264.54)",
+          "oklch(72.14% 0.00287 264.54)",
+          "oklch(83.57% 0.00287 264.54)",
+          "oklch(95.00% 0.00287 264.54)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Reading White",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 0.00)",
+          "oklch(26.43% 0.00000 0.00)",
+          "oklch(37.86% 0.00000 0.00)",
+          "oklch(49.29% 0.00000 0.00)",
+          "oklch(60.71% 0.00000 0.00)",
+          "oklch(72.14% 0.00000 0.00)",
+          "oklch(83.57% 0.00000 0.00)",
+          "oklch(95.00% 0.00000 0.00)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Fine Rule",
+        "tonalRamp": [
+          "oklch(15.00% 0.01222 247.96)",
+          "oklch(26.43% 0.01222 247.96)",
+          "oklch(37.86% 0.01222 247.96)",
+          "oklch(49.29% 0.01222 247.96)",
+          "oklch(60.71% 0.01222 247.96)",
+          "oklch(72.14% 0.01222 247.96)",
+          "oklch(83.57% 0.01222 247.96)",
+          "oklch(95.00% 0.01222 247.96)"
+        ]
+      },
+      "control-line": {
+        "role": "neutral",
+        "displayName": "Control Stroke",
+        "tonalRamp": [
+          "oklch(15.00% 0.03051 249.86)",
+          "oklch(26.43% 0.03051 249.86)",
+          "oklch(37.86% 0.03051 249.86)",
+          "oklch(49.29% 0.03051 249.86)",
+          "oklch(60.71% 0.03051 249.86)",
+          "oklch(72.14% 0.03051 249.86)",
+          "oklch(83.57% 0.03051 249.86)",
+          "oklch(95.00% 0.03051 249.86)"
+        ]
+      },
+      "neutral-soft": {
+        "role": "neutral",
+        "displayName": "Soft Slate",
+        "tonalRamp": [
+          "oklch(15.00% 0.00688 247.90)",
+          "oklch(26.43% 0.00688 247.90)",
+          "oklch(37.86% 0.00688 247.90)",
+          "oklch(49.29% 0.00688 247.90)",
+          "oklch(60.71% 0.00688 247.90)",
+          "oklch(72.14% 0.00688 247.90)",
+          "oklch(83.57% 0.00688 247.90)",
+          "oklch(95.00% 0.00688 247.90)"
+        ]
+      },
+      "error": {
+        "role": "error",
+        "displayName": "Error Red",
+        "tonalRamp": [
+          "oklch(15.00% 0.13292 24.60)",
+          "oklch(26.43% 0.13292 24.60)",
+          "oklch(37.86% 0.13292 24.60)",
+          "oklch(49.29% 0.13292 24.60)",
+          "oklch(60.71% 0.13292 24.60)",
+          "oklch(72.14% 0.13292 24.60)",
+          "oklch(83.57% 0.13292 24.60)",
+          "oklch(95.00% 0.13292 24.60)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Incumbent heading",
+        "purpose": "Responsive page heading in the user-confirmed system sans stack."
+      },
+      "answer": {
+        "displayName": "Answer reading",
+        "purpose": "Preserved whitespace and a generous reading line height."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "source-selection",
+        "value": "280ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Selected-source background highlight, only with prefers-reduced-motion: no-preference."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "stacked-workspace",
+        "value": "760px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary action",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ask a question using the configured answer model.",
+      "html": "<button class=\"ds-primary\" type=\"button\">Ask question</button>",
+      "css": ".ds-primary {font-family: system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; font-size: 0.9rem; font-weight: 650; min-height: 2.75rem; padding: 0.65rem 1rem; border-radius: 6px; cursor: pointer;background: var(--blue, #174fa5); color: #fff; border: 1px solid var(--blue, #174fa5); } .ds-primary:hover:enabled { background: #103e85; } .ds-primary:focus-visible { outline: 3px solid var(--blue, #174fa5); outline-offset: 4px; } .ds-primary:disabled { opacity: 0.48; cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary action",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Find sources, or stop a running request.",
+      "html": "<button class=\"ds-secondary\" type=\"button\">Find sources</button>",
+      "css": ".ds-secondary {font-family: system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; font-size: 0.9rem; font-weight: 650; min-height: 2.75rem; padding: 0.65rem 1rem; border-radius: 6px; cursor: pointer; background: #fff; color: #202b36; border: 1px solid #9babbc; } .ds-secondary:hover:enabled { background: #edf1f5; } .ds-secondary:focus-visible { outline: 3px solid var(--blue, #174fa5); outline-offset: 4px; } .ds-secondary:disabled { opacity: 0.48; cursor: not-allowed; }"
+    },
+    {
+      "name": "Question field",
+      "kind": "input",
+      "refersTo": "question-field",
+      "description": "A labeled, vertically resizable question field.",
+      "html": "<label class=\"ds-field-label\" for=\"ds-question\">Your question</label><textarea class=\"ds-question\" id=\"ds-question\" rows=\"3\" placeholder=\"What happens when I delete an object in a versioned bucket?\"></textarea>",
+      "css": ".ds-field-label { display: block; font-family: system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; font-size: 0.9rem; font-weight: 650; color: #202b36; margin-bottom: 0.65rem; } .ds-question { display: block; box-sizing: border-box; width: 100%; min-height: 7rem; resize: vertical; padding: 0.85rem 1rem; font-family: system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; font-size: 1rem; line-height: 1.65; color: #202b36; background: #fff; border: 1px solid #9babbc; border-radius: 6px; caret-color: var(--blue, #174fa5); } .ds-question::placeholder { color: #647181; opacity: 1; } .ds-question:focus-visible { outline: 3px solid var(--blue, #174fa5); outline-offset: 4px; } .ds-question:disabled { background: #f7f8fa; color: var(--muted, #526170); cursor: not-allowed; }"
+    },
+    {
+      "name": "Home wordmark",
+      "kind": "nav",
+      "description": "Compact home navigation with a quiet descriptor on wider screens.",
+      "html": "<nav class=\"ds-masthead\" aria-label=\"Home\"><a class=\"ds-wordmark\" href=\"/\">S3 Knowledge Engine</a><span>Documentation workspace</span></nav>",
+      "css": ".ds-masthead { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: 1.7rem 0; border-bottom: 1px solid var(--line, #d7dee5); font-family: system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; } .ds-wordmark { font-size: 1.05rem; font-weight: 700; color: #202b36; text-decoration: none; letter-spacing: -0.025em; } .ds-masthead > span { color: var(--muted, #526170); font-size: 0.85rem; } .ds-wordmark:focus-visible { outline: 3px solid var(--blue, #174fa5); outline-offset: 4px; } @media (max-width: 760px) { .ds-masthead { padding: 1.2rem 0; } .ds-masthead > span { display: none; } }"
+    },
+    {
+      "name": "Question form surface",
+      "kind": "card",
+      "refersTo": "question-form",
+      "description": "The white rounded question container, with no shadow.",
+      "html": "<form class=\"ds-form\"><label class=\"ds-form-label\" for=\"ds-form-question\">Your question</label><textarea class=\"ds-form-question\" id=\"ds-form-question\" rows=\"3\"></textarea></form>",
+      "css": ".ds-form { font-family: system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; color: #202b36; background: #fff; border: 1px solid var(--line, #d7dee5); border-radius: 12px; padding: 1.35rem 1.5rem; } .ds-form-label { display: block; font-size: 0.9rem; font-weight: 650; margin-bottom: 0.65rem; } .ds-form-question { width: 100%; box-sizing: border-box; min-height: 7rem; padding: 0.85rem 1rem; resize: vertical; font-family: system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; font-size: 1rem; line-height: 1.65; color: #202b36; background: #fff; border: 1px solid #9babbc; border-radius: 6px; } .ds-form-question:focus-visible { outline: 3px solid var(--blue, #174fa5); outline-offset: 4px; } @media (max-width: 760px) { .ds-form { padding: 1rem; } }"
+    },
+    {
+      "name": "Inline citation",
+      "kind": "chip",
+      "refersTo": "citation",
+      "description": "An inline button that selects and focuses a cited passage.",
+      "html": "<button class=\"ds-citation\" type=\"button\" aria-label=\"Show source 1\">Source 1</button>",
+      "css": ".ds-citation { display: inline; font-family: system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; border: 0; border-radius: 4px; padding: 0.2rem 0.4rem; margin: 0 0.15rem; background: var(--blue-soft, #eaf1fb); color: var(--blue, #174fa5); font-size: 0.75rem; font-weight: 650; white-space: nowrap; vertical-align: baseline; cursor: pointer; } .ds-citation:hover { background: #d9e7fa; } .ds-citation:focus-visible { outline: 3px solid var(--blue, #174fa5); outline-offset: 4px; }"
+    },
+    {
+      "name": "Selected source row",
+      "kind": "custom",
+      "refersTo": "source-selected",
+      "description": "A numbered source with visible and semantic selected state.",
+      "html": "<button class=\"ds-source\" type=\"button\" aria-pressed=\"true\"><span class=\"ds-source-number\">1</span><span><strong>Source heading</strong><span class=\"ds-source-kind\">User guide \u00b7 Cited</span></span></button>",
+      "css": ".ds-source { display: flex; align-items: start; gap: 0.8rem; width: 100%; font-family: system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; color: #202b36; background: transparent; border: 0; border-top: 1px solid var(--line, #d7dee5); border-bottom: 1px solid var(--line, #d7dee5); padding: 0.85rem 0.6rem; text-align: left; border-radius: 0; cursor: pointer; } .ds-source[aria-pressed=\"true\"] { background: var(--blue-soft, #eaf1fb); } .ds-source:hover { background: #eaf0f7; } .ds-source:focus-visible { outline: 3px solid var(--blue, #174fa5); outline-offset: 4px; } .ds-source-number { flex-shrink: 0; min-width: 1.5rem; text-align: center; color: var(--blue, #174fa5); font-size: 0.85rem; font-weight: 650; padding-top: 0.15rem; font-variant-numeric: tabular-nums; } .ds-source strong { display: block; font-size: 0.9rem; line-height: 1.45; overflow-wrap: anywhere; } .ds-source-kind { display: block; color: var(--muted, #526170); font-size: 0.75rem; margin-top: 0.3rem; } @media (prefers-reduced-motion: no-preference) { .ds-source[aria-pressed=\"true\"] { animation: ds-select-source 280ms cubic-bezier(0.16, 1, 0.3, 1); } @keyframes ds-select-source { from { background: #cddff8; } to { background: var(--blue-soft, #eaf1fb); } } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Documentation workspace",
+    "overview": "The interface extends the existing light neutral starter. Pale gray ground, white reading surfaces, dark slate text, and restrained blue controls make questions and source passages easy to scan. System typography is the confirmed incumbent choice; this document records that choice without proposing a replacement identity.\n\nThis is an extracted record of `frontend/app/globals.css` and `frontend/app/page.tsx`. Tokens describe reused shipped values; they do not establish a new component library. Product behavior remains in [PRODUCT.md](PRODUCT.md), and the question-and-sources surface contract remains in [search_surface.md](search_surface.md).",
+    "keyCharacteristics": [
+      "Neutral light surfaces with blue interaction cues.",
+      "Flat grouping through whitespace and fine rules.",
+      "Comfortable reading measures and visible source selection.",
+      "Explicit provisional, empty, stopped, and failed states."
+    ],
+    "rules": [
+      {
+        "name": "The Interaction Cue Rule",
+        "body": "Blue identifies an action, a selected source, or request activity; neutral surfaces carry reading content.",
+        "section": "colors"
+      },
+      {
+        "name": "The Passage Fidelity Rule",
+        "body": "Preserve passage whitespace and wrap long strings; original text is read in the same sans family as the interface rather than restyled as a code block.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Surface Rule",
+        "body": "Preserve the incumbent hierarchy of rules and tonal fills when extending an existing container.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do retain neutral reading surfaces and blue interaction cues.",
+      "Do preserve visible keyboard focus and native form semantics.",
+      "Do preserve passage whitespace and wrap long source identifiers.",
+      "Do stack the source inspector below the answer at the existing mobile breakpoint.",
+      "Do keep provisional answer states and source provenance explicit."
+    ],
+    "donts": [
+      "Don't introduce a new visual identity into this bounded extension.",
+      "Don't use selection or error color as the only state explanation.",
+      "Don't add shadows to the existing flat containers.",
+      "Don't make the source-selection animation run for reduced-motion users.",
+      "Don't imply that checked citation membership proves factual support."
+    ]
+  }
+}
