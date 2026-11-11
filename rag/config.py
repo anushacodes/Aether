@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Literal, Self
 
-from pydantic import Field, HttpUrl, model_validator
+from pydantic import Field, HttpUrl, SecretStr, model_validator
 
 from rag.models import Record
 
@@ -21,6 +21,7 @@ ENV_FIELDS = {
     "RAG_EMBEDDING_DIMENSIONS": ("models", "embedding_dimensions"),
     "RAG_GENERATION_MODEL_ID": ("models", "generation_model_id"),
     "RAG_SEARCH_INDEX": ("index", "name"),
+    "RAG_ADMIN_TOKEN": ("ingestion", "admin_token"),
 }
 
 
@@ -90,7 +91,15 @@ class GenerationConfig(Record):
 class IndexConfig(Record):
     """Name the local corpus index independently of OpenSearch connectivity."""
 
-    name: str = Field(default="s3-rag-pilot", pattern=r"^[a-z0-9][a-z0-9._-]*$", max_length=100)
+    name: str = Field(default="s3-rag-active", pattern=r"^[a-z0-9][a-z0-9._-]*$", max_length=100)
+
+
+class PublicationConfig(Record):
+    """Keep immutable corpus builds and the local publisher lock on durable storage."""
+
+    alias: str = Field(default="s3-rag-active", pattern=r"^[a-z0-9][a-z0-9._-]*$", max_length=100)
+    state_path: Path = Path("data/state.sqlite3")
+    snapshot_dir: Path = Path("data/snapshots")
 
 
 class ApiConfig(Record):
@@ -104,6 +113,19 @@ class ApiConfig(Record):
     stream_timeout_seconds: int = Field(default=90, ge=5, le=180)
 
 
+class IngestionConfig(Record):
+    """Only server-approved manifests can enter the local durable worker."""
+
+    admin_token: SecretStr | None = None
+    sources_path: Path = Path("data/manifests/sources.json")
+    approved_subsets: dict[str, Path] = Field(
+        default_factory=lambda: {"pilot": Path("data/manifests/pilot.json")}
+    )
+    raw_dir: Path = Path("data/raw")
+    max_attempts: int = Field(default=3, ge=1, le=5)
+    max_pending_jobs: int = Field(default=20, ge=1, le=100)
+
+
 class PipelineConfig(Record):
     """The resolved configuration passed explicitly to each pipeline stage."""
 
@@ -114,6 +136,8 @@ class PipelineConfig(Record):
     index: IndexConfig = Field(default_factory=IndexConfig)
     generation: GenerationConfig = Field(default_factory=GenerationConfig)
     api: ApiConfig = Field(default_factory=ApiConfig)
+    publication: PublicationConfig = Field(default_factory=PublicationConfig)
+    ingestion: IngestionConfig = Field(default_factory=IngestionConfig)
     cloud: CloudConfig = Field(default_factory=CloudConfig)
     opensearch_url: HttpUrl = HttpUrl("http://localhost:9200")
 
