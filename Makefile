@@ -1,4 +1,4 @@
-.PHONY: setup help lint format test check search-up search-down search-check api worker ingestion-check workflow-check snapshot-check ragas-check enrichment-check reranking-check
+.PHONY: setup help lint format test check search-up search-down search-check api worker ingestion-check workflow-check snapshot-check ragas-check enrichment-check reranking-check comparison-check admin-check
 
 setup:
 	uv sync --locked
@@ -50,3 +50,9 @@ enrichment-check:
 
 reranking-check:
 	uv run --locked python tests/check_local_reranking.py
+
+comparison-check:
+	uv run --locked python tests/check_local_comparison.py
+
+admin-check:
+	uv run --locked python tests/check_local_admin.py
