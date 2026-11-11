@@ -35,6 +35,7 @@ from rag.eval.answers import AnswerBinding, prepare_answers
 from rag.eval.comparison import compare_retrieval_runs, render_comparison_markdown
 from rag.eval.dataset import load_dataset
 from rag.eval.experiments import PRESETS, preflight_experiment, preset_manifest, resolve_experiment
+from rag.eval.freeze import freeze_dataset, verify_dataset_freeze
 from rag.eval.pooling import pool_candidates
 from rag.eval.runs import run_retrieval_evaluation
 from rag.indexing import bulk_index_chunks, ensure_index, load_chunks
@@ -143,6 +144,19 @@ def build_parser() -> argparse.ArgumentParser:
     eval_operations.add_parser(
         "experiments", help="List the versioned B0–B5 treatments without calling services"
     )
+    freeze = eval_operations.add_parser(
+        "freeze", help="Archive reviewed split labels and verified pinned source provenance offline"
+    )
+    freeze.add_argument("--dataset", type=Path, required=True)
+    freeze.add_argument("--review-record", type=Path, required=True)
+    freeze.add_argument("--sources", type=Path, default=Path("data/manifests/sources.json"))
+    freeze.add_argument("--subset", type=Path, required=True)
+    freeze.add_argument("--raw-dir", type=Path, default=Path("data/raw"))
+    freeze.add_argument("--output", type=Path, required=True)
+    verify = eval_operations.add_parser(
+        "verify-freeze", help="Verify retained frozen label bytes and identities without services"
+    )
+    verify.add_argument("--archive", type=Path, required=True)
     validate = eval_operations.add_parser("validate", help="Check labels and prevent split leakage")
     validate.add_argument("--dataset", type=Path, default=Path("data/eval/pilot.json"))
     validate.add_argument(
@@ -422,6 +436,20 @@ def _run_index(args: argparse.Namespace, config: PipelineConfig) -> None:
 def _run_evaluation(args: argparse.Namespace, config: PipelineConfig) -> int:
     if args.operation == "experiments":
         print(json.dumps(preset_manifest(), indent=2))
+        return 0
+    if args.operation in {"freeze", "verify-freeze"}:
+        if args.operation == "freeze":
+            manifest = freeze_dataset(
+                args.dataset,
+                args.review_record,
+                args.sources,
+                args.subset,
+                args.raw_dir,
+                args.output,
+            )
+        else:
+            manifest = verify_dataset_freeze(args.archive)
+        print(manifest.model_dump_json(indent=2))
         return 0
     dataset = load_dataset(args.dataset, allow_drafts=args.allow_drafts)
     if args.operation == "retrieval" and args.split == "held_out":
