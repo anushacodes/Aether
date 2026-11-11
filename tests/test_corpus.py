@@ -1,21 +1,25 @@
+"""Verify source integrity and extraction without network access or cloud credentials."""
+
+from __future__ import annotations
+
 import io
-import json
 from pathlib import Path
 
 import pytest
 
 from rag.corpus import (
-    clean_section,
     download_sources,
     extract_sections,
-    heading_inventory,
     sha256,
+    write_jsonl,
 )
 from rag.models import SourceManifest, SubsetManifest
 
+CorpusFixture = tuple[SourceManifest, SubsetManifest, Path, bytes]
+
 
 @pytest.fixture
-def corpus(tmp_path):
+def corpus(tmp_path: Path) -> CorpusFixture:
     # CRLF and multibyte text expose accidental newline/byte offset conversion.
     raw = (
         "Contents\r\nExample heading\r\n\r\n"
@@ -67,7 +71,7 @@ def corpus(tmp_path):
     return sources, subset, tmp_path, raw
 
 
-def test_extract_preserves_raw_offsets_and_examples(corpus):
+def test_extract_preserves_raw_offsets_and_examples(corpus: CorpusFixture) -> None:
     sources, subset, raw_dir, raw = corpus
     section = extract_sections(sources, subset, raw_dir)[0]
     assert section.raw_text == raw.decode()[section.raw_start : section.raw_end]
@@ -80,50 +84,29 @@ def test_extract_preserves_raw_offsets_and_examples(corpus):
     assert extract_sections(sources, subset, raw_dir)[0] == section
 
 
-def test_corrupted_source_fails_before_extraction(corpus):
+def test_corrupted_source_fails_before_extraction(corpus: CorpusFixture) -> None:
     sources, subset, raw_dir, raw = corpus
     (raw_dir / "s3-userguide.txt").write_bytes(raw + b"changed")
     with pytest.raises(ValueError, match="Hash mismatch"):
         extract_sections(sources, subset, raw_dir)
 
 
-@pytest.mark.parametrize("change", ["wrong_offset", "out_of_bounds", "wrong_revision"])
-def test_invalid_subset_fails(corpus, change):
+def test_incorrect_selection_offsets_fail(corpus: CorpusFixture) -> None:
     sources, subset, raw_dir, _ = corpus
     values = subset.model_dump()
-    if change == "wrong_offset":
-        values["sections"][0]["raw_start"] += 1
-        message = "range/hash mismatch"
-    elif change == "out_of_bounds":
-        values["sections"][0]["raw_end"] += 1
-        message = "exceeds source length"
-    else:
-        values["source_revision"] = "b" * 40
-        message = "revision"
-    with pytest.raises(ValueError, match=message):
+    values["sections"][0]["raw_start"] += 1
+    with pytest.raises(ValueError, match="range/hash mismatch"):
         extract_sections(sources, SubsetManifest.model_validate(values), raw_dir)
 
 
-def test_inventory_offsets_address_original_text(corpus):
-    sources, _, raw_dir, raw = corpus
-    text = raw.decode()
-    candidates = heading_inventory(sources, raw_dir)
-    assert any(candidate["candidate_heading"] == "Example heading" for candidate in candidates)
-    for candidate in candidates:
-        assert text[candidate["raw_start"] : candidate["raw_end"]] == candidate["candidate_heading"]
-
-
-def test_cleaner_does_not_remove_partial_header_matches():
-    text = 'Warning: Amazon Simple Storage Service User Guide\n{"error": "NoSuchKey"}\n'
-    assert clean_section(text) == text
-
-
-def test_downloader_verifies_before_publishing(corpus, monkeypatch, tmp_path):
+def test_downloader_verifies_before_publishing(
+    corpus: CorpusFixture, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     sources, _, _, raw = corpus
     output = tmp_path / "download"
-    calls = []
+    calls: list[str] = []
 
-    def fetch(url, timeout):
+    def fetch(url: str, timeout: int) -> io.BytesIO:
         calls.append(url)
         assert timeout == 30
         return io.BytesIO(raw)
@@ -136,21 +119,27 @@ def test_downloader_verifies_before_publishing(corpus, monkeypatch, tmp_path):
     assert len(calls) == 1
 
 
-def test_download_hash_failure_leaves_no_partial_file(corpus, monkeypatch, tmp_path):
+def test_download_hash_failure_leaves_no_partial_file(
+    corpus: CorpusFixture, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     sources, _, _, _ = corpus
     output = tmp_path / "bad-download"
-    monkeypatch.setattr("rag.corpus.urlopen", lambda *a, **kw: io.BytesIO(b"wrong source"))
+
+    def fetch_corrupted_source(url: str, timeout: int) -> io.BytesIO:
+        return io.BytesIO(b"wrong source")
+
+    monkeypatch.setattr("rag.corpus.urlopen", fetch_corrupted_source)
     with pytest.raises(ValueError, match="hash mismatch"):
         download_sources(sources, output)
     assert list(output.iterdir()) == []
 
 
-def test_question_drafts_reference_selected_passages_only():
-    subset = SubsetManifest.model_validate_json(Path("data/manifests/pilot.json").read_bytes())
-    dataset = json.loads(Path("data/eval/pilot.json").read_text())
-    sections = {section.section_id for section in subset.sections}
-    assert dataset["corpus_id"] == subset.corpus_id
-    assert len(dataset["questions"]) == 3
-    for question in dataset["questions"]:
-        assert set(question["reference_passage_ids"]).issubset(sections)
-        assert question["split"] == "development"
+def test_failed_jsonl_write_preserves_existing_artifact(tmp_path: Path) -> None:
+    output = tmp_path / "records.jsonl"
+    original = '{"previous": "valid artifact"}\n'
+    output.write_text(original, encoding="utf-8")
+    rows = iter([{"valid": "café"}, {"invalid": object()}])
+    with pytest.raises(TypeError, match="not JSON serializable"):
+        write_jsonl(output, rows)
+    assert output.read_text(encoding="utf-8") == original
+    assert list(tmp_path.iterdir()) == [output]

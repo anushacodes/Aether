@@ -1,10 +1,18 @@
-"""Reproducible source download and raw-range extraction; no AWS/model requests."""
+"""Verify pinned source bytes and publish reproducible local corpus artifacts.
+
+Raw offsets address unmodified UTF-8 text. Network and filesystem operations
+stay here so chunking can remain independent of infrastructure.
+"""
+
+from __future__ import annotations
 
 import hashlib
 import json
 import re
 import tempfile
+from collections.abc import Iterable, Mapping
 from pathlib import Path
+from typing import TypedDict
 from urllib.request import urlopen
 
 from rag.models import SectionRecord, SourceManifest, SubsetManifest
@@ -14,6 +22,10 @@ SOURCE_REPOSITORY = (
     "Metadata-Enrichment-with-LLMs-for-RAGs-Internal-Knowledge-Retrieval"
 )
 MAX_SOURCE_BYTES = 32 * 1024 * 1024
+DOWNLOAD_BLOCK_BYTES = 64 * 1024
+DOWNLOAD_TIMEOUT_SECONDS = 30
+MIN_HEADING_LENGTH = 3
+MAX_HEADING_LENGTH = 100
 CLEANING_VERSION = "pdf-headers-v1"
 HEADERS = {
     "Amazon Simple Storage Service User Guide",
@@ -22,11 +34,22 @@ HEADERS = {
 FOOTER = re.compile(r"^.{1,120} API Version 2006-03-01 [0-9]+\s*$")
 
 
+class HeadingCandidate(TypedDict):
+    """A heuristic heading with offsets into the unmodified source text."""
+
+    source_id: str
+    raw_start: int
+    raw_end: int
+    candidate_heading: str
+
+
 def sha256(data: bytes) -> str:
+    """Return the SHA-256 digest used to verify pinned source artifacts."""
     return hashlib.sha256(data).hexdigest()
 
 
 def load_sources(path: Path) -> SourceManifest:
+    """Validate a source manifest before accessing its files or URLs."""
     return SourceManifest.model_validate_json(path.read_bytes())
 
 
@@ -42,32 +65,33 @@ def download_sources(manifest: SourceManifest, raw_dir: Path) -> list[Path]:
             paths.append(target)
             continue
         url = f"{SOURCE_REPOSITORY}/{source.revision}/input_files/{source.original_filename}"
-        temporary = None
+        temporary_path: Path | None = None
         try:
             with (
-                urlopen(url, timeout=30) as response,
+                urlopen(url, timeout=DOWNLOAD_TIMEOUT_SECONDS) as response,
                 tempfile.NamedTemporaryFile(dir=raw_dir, delete=False) as output,
             ):
-                temporary = Path(output.name)
+                temporary_path = Path(output.name)
                 size = 0
-                while block := response.read(64 * 1024):
+                while block := response.read(DOWNLOAD_BLOCK_BYTES):
                     size += len(block)
                     if size > MAX_SOURCE_BYTES:
                         raise ValueError(f"Source exceeds {MAX_SOURCE_BYTES} bytes: {url}")
                     output.write(block)
-            data = temporary.read_bytes()
+            data = temporary_path.read_bytes()
             if sha256(data) != source.sha256:
                 raise ValueError(f"Downloaded source hash mismatch: {source.original_filename}")
             data.decode("utf-8")  # Fail before publication if encoding is incompatible.
-            temporary.replace(target)
+            temporary_path.replace(target)
             paths.append(target)
         finally:
-            if temporary is not None:
-                temporary.unlink(missing_ok=True)
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)
     return paths
 
 
 def read_verified_sources(manifest: SourceManifest, raw_dir: Path) -> dict[str, str]:
+    """Decode only hash-matched snapshots, preserving original newline sequences."""
     texts = {}
     for source in manifest.sources:
         path = raw_dir / source.original_filename
@@ -79,15 +103,15 @@ def read_verified_sources(manifest: SourceManifest, raw_dir: Path) -> dict[str, 
     return texts
 
 
-def heading_inventory(manifest: SourceManifest, raw_dir: Path) -> list[dict]:
+def heading_inventory(manifest: SourceManifest, raw_dir: Path) -> list[HeadingCandidate]:
     """Heuristic candidates, not a parsed outline; selections require source inspection."""
-    candidates = []
+    candidates: list[HeadingCandidate] = []
     for source_id, text in read_verified_sources(manifest, raw_dir).items():
         offset = 0
         for line in text.splitlines(keepends=True):
             label = line.rstrip("\r\n")
             if (
-                3 <= len(label) <= 100
+                MIN_HEADING_LENGTH <= len(label) <= MAX_HEADING_LENGTH
                 and label[0].isupper()
                 and label == label.strip()
                 and not label.endswith((".", ":", ",", ";"))
@@ -119,6 +143,7 @@ def clean_section(raw_text: str) -> str:
 def extract_sections(
     sources: SourceManifest, subset: SubsetManifest, raw_dir: Path
 ) -> list[SectionRecord]:
+    """Validate all selected raw ranges before returning cleaned records with lineage."""
     if subset.source_revision != sources.revision:
         raise ValueError("Subset revision does not match source manifest")
     texts = read_verified_sources(sources, raw_dir)
@@ -146,18 +171,18 @@ def extract_sections(
     return records
 
 
-def write_jsonl(path: Path, rows: list[dict]) -> None:
+def write_jsonl(path: Path, rows: Iterable[Mapping[str, object]]) -> None:
     """Publish complete output atomically so a failed build cannot leave partial JSONL."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = None
+    temporary_path: Path | None = None
     try:
         with tempfile.NamedTemporaryFile(
             dir=path.parent, mode="w", encoding="utf-8", newline="\n", delete=False
         ) as output:
-            temporary = Path(output.name)
+            temporary_path = Path(output.name)
             for row in rows:
-                output.write(json.dumps(row, ensure_ascii=False) + "\n")
-        temporary.replace(path)
+                output.write(json.dumps(dict(row), ensure_ascii=False) + "\n")
+        temporary_path.replace(path)
     finally:
-        if temporary is not None:
-            temporary.unlink(missing_ok=True)
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
