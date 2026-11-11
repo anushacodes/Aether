@@ -16,7 +16,7 @@ from langsmith import tracing_context
 from opensearchpy import OpenSearch
 from pydantic import Field, StringConstraints, model_validator
 
-from rag.aws_clients import BedrockRuntime
+from rag.aws_clients import BedrockRuntime, RerankRuntime
 from rag.config import PipelineConfig
 from rag.embeddings import Embedder
 from rag.generation import (
@@ -31,6 +31,7 @@ from rag.indexing import resolve_read_config
 from rag.models import (
     AnswerResult,
     Record,
+    RerankingReport,
     RetrievedHit,
     SearchRequest,
     SearchScope,
@@ -97,6 +98,7 @@ class WorkflowState(TypedDict):
     can_retry: bool
     timings_ms: dict[str, float]
     usage_tokens: dict[str, int]
+    reranking: RerankingReport | None
 
 
 def expanded_query(original: str, terms: list[str]) -> str:
@@ -189,6 +191,7 @@ def _build_graph(
             request.mode,
             embedder,
             checkpoint=runtime.checkpoint,
+            **({"rerank_runtime": runtime} if pinned.reranking.enabled else {}),
         )
         runtime.checkpoint()
         timings = dict(state["timings_ms"])
@@ -198,6 +201,7 @@ def _build_graph(
             "hits": retrieved.hits,
             "retrieval_passes": state["retrieval_passes"] + 1,
             "timings_ms": timings,
+            "reranking": retrieved.reranking,
         }
 
     def assess_node(state: WorkflowState) -> dict[str, object]:
@@ -227,6 +231,7 @@ def _build_graph(
             decision=assessment.decision,
             missing_evidence=assessment.missing_evidence,
             context_chunk_ids=[chunk.chunk_id for chunk in context.evidence],
+            reranking=state["reranking"],
         )
         return {
             "assessment": assessment,
@@ -261,6 +266,8 @@ def _build_graph(
         runtime.checkpoint()
         result.timings_ms["total"] = (runtime.clock() - runtime.started) * 1000
         result.usage_tokens |= state["usage_tokens"]
+        result.reranking = state["reranking"]
+        result.snapshot_index = pinned.index.name
         if embedder is not None:
             result.usage_tokens["embedding_input"] = embedder.input_tokens
         result.workflow = WorkflowReport(
@@ -355,6 +362,7 @@ def _initial_state(request: SearchRequest) -> WorkflowState:
         can_retry=False,
         timings_ms={},
         usage_tokens={},
+        reranking=None,
     )
 
 
@@ -363,11 +371,15 @@ def answer_with_workflow(
     config: PipelineConfig,
     request: SearchRequest,
     runtime: BedrockRuntime | None = None,
+    *,
+    rerank_runtime: RerankRuntime | None = None,
 ) -> AnswerResult:
     """Execute fixed branches locally; ambient LangSmith configuration cannot export this data."""
     with (
         tracing_context(enabled=False, parent=False),
-        closing(BoundedRuntime(config, threading.Event(), runtime)) as bounded,
+        closing(
+            BoundedRuntime(config, threading.Event(), runtime, rerank_runtime=rerank_runtime)
+        ) as bounded,
     ):
         graph = _build_graph(client, config, request, bounded, streaming=False)
         state = graph.invoke(_initial_state(request), config={"recursion_limit": 12})
@@ -383,11 +395,15 @@ def stream_with_workflow(
     request: SearchRequest,
     cancelled: threading.Event,
     runtime: BedrockRuntime | None = None,
+    *,
+    rerank_runtime: RerankRuntime | None = None,
 ) -> Iterator[StreamEvent]:
     """Forward custom graph events; cancellation closes nodes before owned clients are released."""
     with (
         tracing_context(enabled=False, parent=False),
-        closing(BoundedRuntime(config, cancelled, runtime)) as bounded,
+        closing(
+            BoundedRuntime(config, cancelled, runtime, rerank_runtime=rerank_runtime)
+        ) as bounded,
     ):
         try:
             bounded.checkpoint()

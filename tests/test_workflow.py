@@ -152,6 +152,14 @@ def test_budget_and_deadline_prevent_followup_calls(setup_graph: tuple) -> None:
         )
     assert runtime.converse.call_count == 1
     now = [0.0]
+    reranker = Mock()
+    bounded = BoundedRuntime(config, threading.Event(), runtime, rerank_runtime=reranker)
+    bounded.converse()
+    with pytest.raises(WorkflowBudgetError):
+        bounded.rerank()
+    reranker.rerank.assert_not_called()
+    bounded.close()
+    reranker.close.assert_not_called()
     config.workflow.timeout_seconds = 1
 
     def slow_call(**_: object) -> dict[str, object]:

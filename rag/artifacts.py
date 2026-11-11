@@ -23,6 +23,12 @@ def pipeline_fingerprint(config: PipelineConfig) -> str:
         "prompt_version": PROMPT_VERSION,
         "assessment_prompt_version": ASSESSMENT_PROMPT_VERSION,
         "workflow": config.workflow.model_dump(mode="json"),
+        "reranking": config.reranking.model_dump(mode="json"),
+        **(
+            {"enrichment_fingerprint": config.index.enrichment_fingerprint}
+            if config.index.enrichment_fingerprint is not None
+            else {}
+        ),
     }
     return hashlib.sha256(json.dumps(settings, sort_keys=True).encode("utf-8")).hexdigest()
 
@@ -75,7 +81,9 @@ def save_answer_run(
         "system_prompt": GROUNDING_INSTRUCTIONS,
         "model_called": result.workflow.model_calls > 0
         if result.workflow
-        else bool(result.usage_tokens),
+        else bool(result.usage_tokens)
+        or bool(result.reranking and result.reranking.attempted_calls),
+        "reranking_settings": config.reranking.model_dump(mode="json"),
         "generation_model_id": config.models.generation_model_id,
         "generation_parameters": config.generation.model_dump(mode="json"),
         "context_passages": [chunk.model_dump(mode="json") for chunk in result.evidence],

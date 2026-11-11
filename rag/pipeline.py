@@ -9,13 +9,14 @@ from typing import Literal
 
 from opensearchpy import OpenSearch
 
-from rag.aws_clients import BedrockRuntime, create_bedrock_client
+from rag.aws_clients import BedrockRuntime, RerankRuntime, create_bedrock_client
 from rag.config import PipelineConfig
 from rag.embeddings import Embedder
 from rag.fusion import reciprocal_rank_fusion
 from rag.generation import INSUFFICIENT_RESPONSE, generate_answer
-from rag.indexing import resolve_read_config
+from rag.indexing import resolve_read_config, verify_index
 from rag.models import AnswerResult, RetrievalResult, RetrievedHit, SearchRequest, SearchScope
+from rag.reranking import rerank_candidates
 from rag.retrieval import bm25_search, vector_search
 
 
@@ -45,6 +46,10 @@ def _vector_stage(
     started = perf_counter()
     if checkpoint is not None:
         checkpoint()
+    # Reject incompatible experiment/model inputs before paying for a query embedding.
+    verify_index(client, config)
+    if checkpoint is not None:
+        checkpoint()
     vector = embedder.embed_text(query)
     embedded = perf_counter()
     if checkpoint is None:
@@ -66,6 +71,7 @@ def retrieve(
     embedder: Embedder | None = None,
     *,
     checkpoint: Callable[[], None] | None = None,
+    rerank_runtime: RerankRuntime | None = None,
 ) -> RetrievalResult:
     """Run the requested retrievers; hybrid starts independent work concurrently."""
     query = SearchRequest(query=query, mode=mode, scope=scope).query
@@ -101,8 +107,21 @@ def retrieve(
             )
     else:
         raise ValueError(f"Unknown retrieval mode: {mode!r}")
+    reranking = None
+    if config.reranking.enabled:
+        reranked = perf_counter()
+        hits, reranking = rerank_candidates(
+            config, query, hits, runtime=rerank_runtime, checkpoint=checkpoint
+        )
+        timings["reranking"] = (perf_counter() - reranked) * 1000
     timings["retrieval_total"] = (perf_counter() - started) * 1000
-    return RetrievalResult(hits=hits, mode=mode, timings_ms=timings)
+    return RetrievalResult(
+        hits=hits,
+        mode=mode,
+        timings_ms=timings,
+        reranking=reranking,
+        snapshot_index=config.index.name,
+    )
 
 
 def answer_question(
@@ -111,6 +130,8 @@ def answer_question(
     request: SearchRequest,
     runtime: BedrockRuntime | None = None,
     embedder: Embedder | None = None,
+    *,
+    rerank_runtime: RerankRuntime | None = None,
 ) -> AnswerResult:
     """Use the shared retrieval path and create a generation client only when evidence exists."""
     if request.workflow:
@@ -118,7 +139,7 @@ def answer_question(
 
         if embedder is not None:
             raise ValueError("Workflow owns its budgeted embedder; pass a runtime instead")
-        return answer_with_workflow(client, config, request, runtime)
+        return answer_with_workflow(client, config, request, runtime, rerank_runtime=rerank_runtime)
     owns_runtime = False
     try:
         if request.mode != "bm25" and embedder is None:
@@ -126,7 +147,16 @@ def answer_question(
                 runtime = create_bedrock_client(config, require_generation=True)
                 owns_runtime = True
             embedder = Embedder(config, runtime)
-        retrieved = retrieve(client, config, request.query, request.scope, request.mode, embedder)
+        retrieval_options = {"rerank_runtime": rerank_runtime} if rerank_runtime is not None else {}
+        retrieved = retrieve(
+            client,
+            config,
+            request.query,
+            request.scope,
+            request.mode,
+            embedder,
+            **retrieval_options,
+        )
         if not retrieved.hits:
             return AnswerResult(
                 answer=INSUFFICIENT_RESPONSE,
@@ -134,11 +164,18 @@ def answer_question(
                 status="insufficient_evidence",
                 evidence=[],
                 timings_ms=retrieved.timings_ms,
+                reranking=retrieved.reranking,
+                snapshot_index=retrieved.snapshot_index,
             )
         if runtime is None:
             runtime = create_bedrock_client(config, require_generation=True)
             owns_runtime = True
-        return generate_answer(runtime, config, request.query, retrieved.hits, retrieved.timings_ms)
+        result = generate_answer(
+            runtime, config, request.query, retrieved.hits, retrieved.timings_ms
+        )
+        result.reranking = retrieved.reranking
+        result.snapshot_index = retrieved.snapshot_index
+        return result
     finally:
         if owns_runtime and runtime is not None:
             runtime.close()

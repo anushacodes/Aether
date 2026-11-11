@@ -9,6 +9,7 @@ import pytest
 from opensearchpy import NotFoundError
 
 from rag.config import PipelineConfig
+from rag.indexing import index_definition
 from rag.models import RetrievedHit, SearchScope
 from rag.pipeline import retrieve
 
@@ -30,6 +31,10 @@ def test_hybrid_retrieval_runs_independent_paths_concurrently(
     monkeypatch.setattr("rag.pipeline.vector_search", vector)
     client = Mock()
     client.indices.get_alias.side_effect = NotFoundError(404, "no alias")
+    client.indices.get_mapping.return_value = {
+        "s3-rag-active": {"mappings": index_definition(PipelineConfig())["mappings"]}
+    }
     result = retrieve(client, PipelineConfig(), "versions", SearchScope(), "hybrid", Mock())
     assert result.hits == []
+    assert result.snapshot_index == "s3-rag-active"
     assert {"bm25", "embedding", "vector", "fusion", "retrieval_total"} <= result.timings_ms.keys()

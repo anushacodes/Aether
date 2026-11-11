@@ -11,7 +11,7 @@ from typing import Literal, Protocol
 
 from opensearchpy import OpenSearch
 
-from rag.aws_clients import BedrockRuntime, create_bedrock_client
+from rag.aws_clients import BedrockRuntime, RerankRuntime, create_bedrock_client
 from rag.config import PipelineConfig
 from rag.embeddings import Embedder
 from rag.generation import (
@@ -24,6 +24,7 @@ from rag.generation import (
 )
 from rag.models import AnswerResult, SearchRequest
 from rag.pipeline import retrieve
+from rag.workflow_limits import WorkflowCancelled
 
 MAX_RESPONSE_CHARACTERS = 32_000
 
@@ -92,12 +93,16 @@ def stream_answer(
     request: SearchRequest,
     cancelled: threading.Event,
     runtime: BedrockRuntime | None = None,
+    *,
+    rerank_runtime: RerankRuntime | None = None,
 ) -> Iterator[StreamEvent]:
     """Reuse normal retrieval/context/citation logic and stop scheduling work after disconnect."""
     if request.workflow:
         from rag.workflow import stream_with_workflow
 
-        yield from stream_with_workflow(client, config, request, cancelled, runtime)
+        yield from stream_with_workflow(
+            client, config, request, cancelled, runtime, rerank_runtime=rerank_runtime
+        )
         return
     with ExitStack() as stack:
         if cancelled.is_set():
@@ -111,7 +116,24 @@ def stream_answer(
                     closing(create_bedrock_client(config, require_generation=True))
                 )
             embedder = Embedder(config, runtime)
-        retrieved = retrieve(client, config, request.query, request.scope, request.mode, embedder)
+
+        def checkpoint() -> None:
+            if cancelled.is_set():
+                raise WorkflowCancelled("Search was cancelled")
+
+        try:
+            retrieved = retrieve(
+                client,
+                config,
+                request.query,
+                request.scope,
+                request.mode,
+                embedder,
+                checkpoint=checkpoint,
+                **({"rerank_runtime": rerank_runtime} if rerank_runtime is not None else {}),
+            )
+        except WorkflowCancelled:
+            return
         if cancelled.is_set():
             return
         context = assemble_context(retrieved.hits, config.retrieval)
@@ -125,6 +147,8 @@ def stream_answer(
                 status="insufficient_evidence",
                 evidence=[],
                 timings_ms=retrieved.timings_ms,
+                reranking=retrieved.reranking,
+                snapshot_index=retrieved.snapshot_index,
             )
             yield StreamEvent("done", result.model_dump(mode="json"))
             return
@@ -156,4 +180,6 @@ def stream_answer(
         }
         result = finalize_answer("".join(parts).strip(), context, timings)
         result.usage_tokens = usage
+        result.reranking = retrieved.reranking
+        result.snapshot_index = retrieved.snapshot_index
         yield StreamEvent("done", result.model_dump(mode="json"))
