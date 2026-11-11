@@ -36,6 +36,7 @@ from rag.pipeline import answer_question, retrieve
 from rag.publication import active_index, build_snapshot, publish_snapshot
 from rag.search_store import check_search_store, create_search_client
 from rag.worker import WorkerBusyError, run_one
+from rag.workflow_limits import WorkflowBudgetError
 
 
 def _add_question_arguments(parser: argparse.ArgumentParser) -> None:
@@ -90,6 +91,11 @@ def build_parser() -> argparse.ArgumentParser:
     _add_question_arguments(ask)
     ask.add_argument(
         "--save-run", type=Path, help="Save question and exact answer context in a new directory"
+    )
+    ask.add_argument(
+        "--workflow",
+        action="store_true",
+        help="Opt into bounded evidence assessment and one retrieval retry",
     )
     evaluation = commands.add_parser(
         "eval", help="Validate and evaluate independent quality labels"
@@ -385,6 +391,7 @@ def main(argv: list[str] | None = None) -> int:
             request = SearchRequest(
                 query=args.query,
                 mode=args.mode,
+                workflow=args.workflow,
                 scope=SearchScope(
                     permitted_guides=args.guide or ["s3-userguide", "s3-api"],
                     corpus_id=args.corpus_id,
@@ -423,7 +430,7 @@ def main(argv: list[str] | None = None) -> int:
     except (BotoCoreError, ClientError) as error:
         print(f"Error: AWS request failed: {error}", file=sys.stderr)
         return 1
-    except (OSError, ValueError, KeyError, WorkerBusyError) as error:
+    except (OSError, ValueError, KeyError, WorkerBusyError, WorkflowBudgetError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 1
     except KeyboardInterrupt:

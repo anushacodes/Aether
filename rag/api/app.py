@@ -26,6 +26,7 @@ from rag.indexing import resolve_read_config, verify_index
 from rag.models import AnswerResult, RetrievalResult, SearchRequest
 from rag.pipeline import answer_question, retrieve
 from rag.search_store import create_search_client
+from rag.workflow_limits import WorkflowBudgetError, WorkflowDeadlineError
 
 
 def get_search_client(request: Request) -> OpenSearch:
@@ -38,6 +39,10 @@ def _dependency_errors() -> Iterator[None]:
     """Classify expected integration failures without sending provider details to the browser."""
     try:
         yield
+    except WorkflowDeadlineError as error:
+        raise HTTPException(504, detail={"code": "request_timeout"}) from error
+    except WorkflowBudgetError as error:
+        raise HTTPException(429, detail={"code": "workflow_budget_exhausted"}) from error
     except RequestLimitError as error:
         raise HTTPException(
             429, detail={"code": str(error)}, headers={"Retry-After": "60"}
@@ -120,6 +125,8 @@ def create_app(config: PipelineConfig | None = None) -> FastAPI:
         body: SearchRequest, client: Annotated[OpenSearch, Depends(get_search_client)]
     ) -> RetrievalResult:
         """Run blocking search/model SDK calls in FastAPI's worker thread pool."""
+        if body.workflow:
+            raise HTTPException(400, detail={"code": "workflow_requires_answer_endpoint"})
         with _dependency_errors(), limiter.admit(), ExitStack() as stack:
             embedder = None
             if body.mode != "bm25":

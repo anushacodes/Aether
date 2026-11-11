@@ -19,6 +19,7 @@ from rag.config import ConfigurationError, PipelineConfig
 from rag.generation import CitationValidationError
 from rag.models import SearchRequest
 from rag.streaming import GenerationStreamError, StreamEvent, stream_answer
+from rag.workflow_limits import WorkflowBudgetError, WorkflowDeadlineError
 
 QUEUE_CAPACITY = 8
 POLL_SECONDS = 0.25
@@ -32,6 +33,10 @@ def encode_event(event: StreamEvent) -> str:
 
 
 def _error_code(error: Exception) -> str:
+    if isinstance(error, WorkflowDeadlineError):
+        return "request_timeout"
+    if isinstance(error, WorkflowBudgetError):
+        return "workflow_budget_exhausted"
     if isinstance(error, ConfigurationError):
         return "model_not_configured"
     if isinstance(error, CitationValidationError):
