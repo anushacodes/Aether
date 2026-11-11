@@ -1,0 +1,759 @@
+{
+  "dataset_id": "s3-core-development-drafts-v1",
+  "corpus_id": "s3-core-v1",
+  "review_status": "source_checked_by_assistant_pending_human_review",
+  "note": "20 development drafts authored against pinned historical source selections, not current AWS guidance. Exact cleaned-source spans were checked by the assistant; independent human review, exhaustive graded judgments, and held-out labels remain pending. References are not ingestion inputs. Do not score these drafts as benchmark truth.",
+  "questions": [
+    {
+      "question_id": "core-001",
+      "query": "One part of my multipart upload failed in transit. Do I need to restart the whole object upload?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. Retransmit the failed part; this does not affect other uploaded parts. S3 assembles the object after all parts are uploaded.",
+      "reference_passage_ids": [
+        "multipart-retry"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-001",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "multipart-retry": 2
+      },
+      "required_evidence_groups": [
+        [
+          "multipart-retry"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-002",
+      "query": "What happens if I upload a new multipart part using a part number I already uploaded?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The new part overwrites the previously uploaded part with that part number.",
+      "reference_passage_ids": [
+        "multipart-reused-part"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "multipart-part-records",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "multipart-reused-part": 2
+      },
+      "required_evidence_groups": [
+        [
+          "multipart-reused-part"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-003",
+      "query": "Can I assume that the ETag returned after completing a multipart upload is the MD5 hash of the object?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. The combined object ETag is not necessarily an MD5 hash of the object data.",
+      "reference_passage_ids": [
+        "multipart-combined-etag"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-003",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "multipart-combined-etag": 2
+      },
+      "required_evidence_groups": [
+        [
+          "multipart-combined-etag"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-004",
+      "query": "ListParts has more than 1,000 uploaded parts to return. Which response fields and next request parameter let me fetch the rest?",
+      "category": "api_parameter",
+      "permitted_guides": [
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "A response returns at most 1,000 parts. If IsTruncated is true, use its NextPartNumberMarker value as the part-number-marker query parameter in the next ListParts request.",
+      "reference_passage_ids": [
+        "listparts-pagination"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-004",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "listparts-pagination": 2
+      },
+      "required_evidence_groups": [
+        [
+          "listparts-pagination"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-005",
+      "query": "I aborted a multipart upload while parts were still uploading. How can I check that all part storage has been freed?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "In-progress part uploads may still succeed or fail, so aborting the upload more than once may be necessary. Call ListParts and verify that its parts list is empty.",
+      "reference_passage_ids": [
+        "abort-inflight-parts"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-005",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "abort-inflight-parts": 2
+      },
+      "required_evidence_groups": [
+        [
+          "abort-inflight-parts"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-006",
+      "query": "Does an HTTP 200 OK header from CompleteMultipartUpload always mean the upload completed successfully?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. Processing can fail after the initial 200 OK header, and an error can be embedded in that response. A direct API client must parse the response body and handle the result.",
+      "reference_passage_ids": [
+        "complete-embedded-error"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-006",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "complete-embedded-error": 2
+      },
+      "required_evidence_groups": [
+        [
+          "complete-embedded-error"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-007",
+      "query": "Can a single S3 GET retrieve two disjoint byte ranges from one object?",
+      "category": "api_parameter",
+      "permitted_guides": [
+        "s3-userguide"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. The selected guide says S3 does not support retrieving multiple ranges of data in one GET request.",
+      "reference_passage_ids": [
+        "download-single-range"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-007",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "download-single-range": 2
+      },
+      "required_evidence_groups": [
+        [
+          "download-single-range"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-008",
+      "query": "What happens if the checksum I send with an upload differs from the checksum S3 calculates using that algorithm?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "S3 compares the supplied checksum with its calculated value and reports an error if they do not match.",
+      "reference_passage_ids": [
+        "upload-checksum-mismatch"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-008",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "upload-checksum-mismatch": 2
+      },
+      "required_evidence_groups": [
+        [
+          "upload-checksum-mismatch"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-009",
+      "query": "Can I use PutObject to change just one metadata value without sending the entire object?",
+      "category": "api_parameter",
+      "permitted_guides": [
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. PutObject cannot update only a single metadata value; put the entire object with the updated metadata.",
+      "reference_passage_ids": [
+        "putobject-metadata"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-009",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "putobject-metadata": 2
+      },
+      "required_evidence_groups": [
+        [
+          "putobject-metadata"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-010",
+      "query": "For a missing object, why might HeadObject return 403 rather than 404?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "For a missing object, S3 returns 404 when the requester has s3:ListBucket on the bucket and 403 when that permission is absent.",
+      "reference_passage_ids": [
+        "headobject-missing-key"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-010",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "headobject-missing-key": 2
+      },
+      "required_evidence_groups": [
+        [
+          "headobject-missing-key"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-011",
+      "query": "Will a bucket policy denying every action stop an existing S3 Lifecycle rule from deleting or transitioning objects?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. A bucket policy cannot prevent deletions or transitions performed by an S3 Lifecycle rule; the lifecycle configuration still functions normally.",
+      "reference_passage_ids": [
+        "lifecycle-bucket-deny"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-011",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "lifecycle-bucket-deny": 2
+      },
+      "required_evidence_groups": [
+        [
+          "lifecycle-bucket-deny"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-012",
+      "query": "If a bucket has less restrictive Block Public Access settings than its account, which settings does S3 apply?",
+      "category": "comparison",
+      "permitted_guides": [
+        "s3-userguide"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "S3 applies the most restrictive combination of the applicable access point, bucket, and account Block Public Access settings.",
+      "reference_passage_ids": [
+        "public-access-restriction"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-012",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "public-access-restriction": 2
+      },
+      "required_evidence_groups": [
+        [
+          "public-access-restriction"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-013",
+      "query": "Does changing an existing object’s tags create a new version in a versioning-enabled bucket?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. Changing tags does not PUT a new object, so it does not create a new object version. Operations such as CopyObject can create versions because they implement a PUT.",
+      "reference_passage_ids": [
+        "versioning-tag-change"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-013",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "versioning-tag-change": 2
+      },
+      "required_evidence_groups": [
+        [
+          "versioning-tag-change"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-014",
+      "query": "How does GET respond when the current version is a delete marker, compared with a GET explicitly requesting the delete marker’s version ID?",
+      "category": "comparison",
+      "permitted_guides": [
+        "s3-userguide"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Without versionId and with a current delete marker, S3 returns 404 and x-amz-delete-marker: true. When versionId identifies a delete marker, S3 returns 405, that header, and Last-Modified for GetObject or HeadObject.",
+      "reference_passage_ids": [
+        "delete-marker-current-get",
+        "delete-marker-version-get"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "delete-marker-recovery",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "delete-marker-current-get": 2,
+        "delete-marker-version-get": 2
+      },
+      "required_evidence_groups": [
+        [
+          "delete-marker-current-get"
+        ],
+        [
+          "delete-marker-version-get"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-015",
+      "query": "The current version is a delete marker. Will deleting by key alone remove that marker, and how do I remove the marker permanently?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "A key-only DeleteObject adds another delete marker. To remove the delete marker permanently, specify that marker’s version ID in DeleteObject.",
+      "reference_passage_ids": [
+        "delete-marker-exact-delete",
+        "delete-marker-key-only-delete"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "delete-marker-recovery",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "delete-marker-exact-delete": 2,
+        "delete-marker-key-only-delete": 2
+      },
+      "required_evidence_groups": [
+        [
+          "delete-marker-exact-delete"
+        ],
+        [
+          "delete-marker-key-only-delete"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-016",
+      "query": "Does an ordinary lifecycle Expiration action remove noncurrent versions, or is a separate action needed?",
+      "category": "comparison",
+      "permitted_guides": [
+        "s3-userguide"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Ordinary object expiration affects only the current version. Use NoncurrentVersionExpiration to permanently delete noncurrent versions; those deleted versions cannot be recovered.",
+      "reference_passage_ids": [
+        "expiration-current-only",
+        "expiration-noncurrent-action"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-016",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "expiration-current-only": 2,
+        "expiration-noncurrent-action": 2
+      },
+      "required_evidence_groups": [
+        [
+          "expiration-current-only"
+        ],
+        [
+          "expiration-noncurrent-action"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-017",
+      "query": "Can I apply an AbortIncompleteMultipartUpload lifecycle action using a tag-based filter?",
+      "category": "api_parameter",
+      "permitted_guides": [
+        "s3-userguide"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. A lifecycle rule using AbortIncompleteMultipartUpload cannot specify a tag-based filter.",
+      "reference_passage_ids": [
+        "abort-lifecycle-filter"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-017",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "abort-lifecycle-filter": 2
+      },
+      "required_evidence_groups": [
+        [
+          "abort-lifecycle-filter"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-018",
+      "query": "What information should my uploader retain for CompleteMultipartUpload, and should I build that request from the returned multipart listing?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Retain each uploaded part number and the ETag S3 returns and include them in completion. Maintain your own list: the guide says to use returned listings only for verification, not to construct the completion request.",
+      "reference_passage_ids": [
+        "multipart-record-etags",
+        "multipart-listing-verification"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "multipart-part-records",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "multipart-record-etags": 2,
+        "multipart-listing-verification": 2
+      },
+      "required_evidence_groups": [
+        [
+          "multipart-record-etags"
+        ],
+        [
+          "multipart-listing-verification"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-019",
+      "query": "Is my production bucket customer-invoices public right now?",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The selected documentation cannot establish the live access state of a particular bucket.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "development",
+      "group_id": "core-evidence-019",
+      "review_status": "draft",
+      "unanswerable_reason": "The corpus contains documentation, not live account or bucket policy/configuration state.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    },
+    {
+      "question_id": "core-020",
+      "query": "How do I configure CreateSession authentication for an S3 Express One Zone directory bucket?",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The selected general-purpose-bucket corpus does not include the directory-bucket session procedure.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "development",
+      "group_id": "core-evidence-020",
+      "review_status": "draft",
+      "unanswerable_reason": "S3 Express and directory-bucket operational procedures are explicitly outside the selected corpus.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    }
+  ],
+  "passages": [
+    {
+      "passage_id": "multipart-retry",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-overview",
+      "raw_section_sha256": "7fa9cc215744fbffb65603e8eb32cf501f448fcb74bdb9305f368802fa1ab197",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 53,
+      "text_end": 443,
+      "text_sha256": "7062ae9523477e7b64f349fa3a9f85deeb0cb55086ca43244fbb4b22dc2fe29a"
+    },
+    {
+      "passage_id": "multipart-reused-part",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-parts",
+      "raw_section_sha256": "c96e293562be17732484c06fbb2be0f6e0bdb3ad497bce9f4d9698c98e947794",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 151,
+      "text_end": 485,
+      "text_sha256": "453a55b1f961def458b1226bb8a5a7abfff6db354619c3e83b401fd4d28e5b84"
+    },
+    {
+      "passage_id": "multipart-combined-etag",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-completion",
+      "raw_section_sha256": "75b5613379a2e61968e132139a11886a15e0baa97a7bb23925428648956d4c17",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 360,
+      "text_end": 640,
+      "text_sha256": "d2c6a0188593c98200e91b4046421ce1b78047becd7b064547f686c5cf9c7738"
+    },
+    {
+      "passage_id": "listparts-pagination",
+      "source_id": "s3-api",
+      "section_id": "api-listparts-opening",
+      "raw_section_sha256": "5ec654699dd2a85b4341ff9f0d7e45d19e4f8718b41c763b9085954b7ee77ff9",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 277,
+      "text_end": 863,
+      "text_sha256": "82e6cf5722beb7fcefdd57d7ea418356a4eb9ca76cdf2adf51a9917fe3a53b2d"
+    },
+    {
+      "passage_id": "abort-inflight-parts",
+      "source_id": "s3-api",
+      "section_id": "api-abortmultipartupload-opening",
+      "raw_section_sha256": "a1cbe70db3bca0d7856cba3a87d5f2a00a4f93ed7ba66494af5c964e43fa4c34",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 40,
+      "text_end": 673,
+      "text_sha256": "30a28e454f961c1a4bfc783724bd843d8899f15f077e05031d9164d8e6fd1fcd"
+    },
+    {
+      "passage_id": "complete-embedded-error",
+      "source_id": "s3-api",
+      "section_id": "api-completemultipartupload-opening",
+      "raw_section_sha256": "bc801e3002e563a8de095affaaa59ecb8058b560c852dc279aec4e61d5a3d020",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 844,
+      "text_end": 1526,
+      "text_sha256": "6917c3db1b5fc1ea21e48735aca1b0ed2a9fd3d054ba37dd08f723f2d84a3c3b"
+    },
+    {
+      "passage_id": "download-single-range",
+      "source_id": "s3-userguide",
+      "section_id": "ug-download-range",
+      "raw_section_sha256": "b1c3bc55421e61ddfa325daec08d704c027f65f70b6f5c65f5b2af741fc22517",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 882,
+      "text_end": 967,
+      "text_sha256": "e12a30066e0736472c4f6397e70ff4e796db72029728d2baeee2036db84e3b24"
+    },
+    {
+      "passage_id": "upload-checksum-mismatch",
+      "source_id": "s3-userguide",
+      "section_id": "ug-object-checksums",
+      "raw_section_sha256": "730f4d7e866ed8a694e08aa1b2c8a6117cfed42f43405b27d55be9c2e392ba16",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 628,
+      "text_end": 901,
+      "text_sha256": "64a45bae21fdf6f067706a16bf664b16d030d66c7597ff6a23a973ada10b449a"
+    },
+    {
+      "passage_id": "putobject-metadata",
+      "source_id": "s3-api",
+      "section_id": "api-putobject-opening",
+      "raw_section_sha256": "355a1edb2d2da6f87a3c44820a72ac17ce525a7a8fbcee86dc215d6c2bae2008",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 64,
+      "text_end": 364,
+      "text_sha256": "677ba88330e9f598d3e5ba6f2ce7fc4c254f6efb0c60e9d73334682c676fd7e0"
+    },
+    {
+      "passage_id": "headobject-missing-key",
+      "source_id": "s3-api",
+      "section_id": "api-headobject-opening",
+      "raw_section_sha256": "24add3ca6ff9cce0614c9cf171dbb2938659064140e419dfdffce8a3b5f3a9f1",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1193,
+      "text_end": 1555,
+      "text_sha256": "abf2afe79f1b15fd34d22e2f585422e4a097adb62722a70a02884377fdc1ed00"
+    },
+    {
+      "passage_id": "lifecycle-bucket-deny",
+      "source_id": "s3-userguide",
+      "section_id": "ug-bucket-policies",
+      "raw_section_sha256": "42543dedb0a2b465fbf4b29155e164c7d9556c5a8bcb5edf7a13ff15678b124e",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1538,
+      "text_end": 1766,
+      "text_sha256": "d6ac50c57c0fa5b76699100b7e2db32c7e265e8afa45cc405c780a434a9c22a1"
+    },
+    {
+      "passage_id": "public-access-restriction",
+      "source_id": "s3-userguide",
+      "section_id": "ug-public-access-overview",
+      "raw_section_sha256": "cba574b1bf1e85345a578b957d1db7ac109df0b46632ad80fcc1ca1cc8296a27",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1259,
+      "text_end": 1655,
+      "text_sha256": "47f7af37401aada96723db92f68b3e214461ecda8a6b972d68b8115463e0461e"
+    },
+    {
+      "passage_id": "versioning-tag-change",
+      "source_id": "s3-userguide",
+      "section_id": "ug-versioning-workflows",
+      "raw_section_sha256": "b83924dffe89315df73db51b2e218eefbcd6a0c9cb575a03a277ffc8ee80ee41",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 2016,
+      "text_end": 2342,
+      "text_sha256": "51b6584d577e691d990dd40975d1e94b03d0a8a64998ab958248a2678e9ac196"
+    },
+    {
+      "passage_id": "delete-marker-current-get",
+      "source_id": "s3-userguide",
+      "section_id": "ug-delete-markers",
+      "raw_section_sha256": "c11ebc190ac1aa11ac5508e1b738f9946e2184f4e0671e6fdc13e7242b599bbb",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 2264,
+      "text_end": 2489,
+      "text_sha256": "5d2140c78dd6aa7b115545531af9809872acd5278de4e181da3c55ecddf12840"
+    },
+    {
+      "passage_id": "delete-marker-version-get",
+      "source_id": "s3-userguide",
+      "section_id": "ug-delete-markers",
+      "raw_section_sha256": "c11ebc190ac1aa11ac5508e1b738f9946e2184f4e0671e6fdc13e7242b599bbb",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 2490,
+      "text_end": 2828,
+      "text_sha256": "e85e0bf5e0d701107dcdea0e7ccce80b3cc473c0154913cc3381d1a5ef2b77fd"
+    },
+    {
+      "passage_id": "delete-marker-exact-delete",
+      "source_id": "s3-userguide",
+      "section_id": "ug-delete-marker-recovery",
+      "raw_section_sha256": "c83bcace3775884535cc921b252e3d6c22f003725edd06bf7eb60cd6ed1633d2",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 869,
+      "text_end": 1077,
+      "text_sha256": "4014cf4bb9bbb7d3a90843a28f0804551232f7a8fe04808edbeeb06246fe0b1e"
+    },
+    {
+      "passage_id": "delete-marker-key-only-delete",
+      "source_id": "s3-userguide",
+      "section_id": "ug-delete-marker-recovery",
+      "raw_section_sha256": "c83bcace3775884535cc921b252e3d6c22f003725edd06bf7eb60cd6ed1633d2",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1219,
+      "text_end": 1440,
+      "text_sha256": "76ff205d20356debd5d54c6cc52ff913621a9059e5e2b85962c8e8fc11b5c03e"
+    },
+    {
+      "passage_id": "expiration-current-only",
+      "source_id": "s3-userguide",
+      "section_id": "ug-lifecycle-expiration",
+      "raw_section_sha256": "15a15f6d69afdaf5a90259434e30bd58819735411c139d44d986014bf26538d3",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1154,
+      "text_end": 1265,
+      "text_sha256": "08c909f8c65e2a0ed7c82b708820a32591d92072905b791693c69895e4ba46a4"
+    },
+    {
+      "passage_id": "expiration-noncurrent-action",
+      "source_id": "s3-userguide",
+      "section_id": "ug-lifecycle-expiration",
+      "raw_section_sha256": "15a15f6d69afdaf5a90259434e30bd58819735411c139d44d986014bf26538d3",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1860,
+      "text_end": 2034,
+      "text_sha256": "2c9fe9a505f9f2bdb337eb60aa676540647c12f86d7db3ce10e233b2c05dabf3"
+    },
+    {
+      "passage_id": "abort-lifecycle-filter",
+      "source_id": "s3-userguide",
+      "section_id": "ug-lifecycle-abort-multipart",
+      "raw_section_sha256": "cde55dc29c9b359ba56e7cd6e2476002bd47a69b972a4162a5722780d11d73a2",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 747,
+      "text_end": 859,
+      "text_sha256": "549ea0574f2263bd42e7f4a256b4e637a1cdefecf7cebc00fb6f1fc2ab477ba7"
+    },
+    {
+      "passage_id": "multipart-record-etags",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-parts",
+      "raw_section_sha256": "c96e293562be17732484c06fbb2be0f6e0bdb3ad497bce9f4d9698c98e947794",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 486,
+      "text_end": 754,
+      "text_sha256": "1b461575d2c3edea0fa765b9a8c5a7a60c200e98d057bf8cde45dcf4a1813a3d"
+    },
+    {
+      "passage_id": "multipart-listing-verification",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-listings",
+      "raw_section_sha256": "de0a65354dd6899348b699486f7d04821261eacca779472297c6ef70aecfbe4f",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1001,
+      "text_end": 1286,
+      "text_sha256": "677d264e7055e0509b99cad767a5f8e4c12b5e6c7b9e53b8fc8a226307f365fe"
+    }
+  ]
+}
