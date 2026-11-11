@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from unittest.mock import Mock
 
-from rag.config import RetrievalConfig
-from rag.generation import assemble_context, generation_message
+import pytest
+
+from rag.config import PipelineConfig, RetrievalConfig
+from rag.generation import assemble_context, converse_text, generation_message
 from rag.models import ChunkRecord, RetrievedHit
 
 
@@ -28,3 +31,22 @@ def test_context_preserves_source_text_as_data_and_skips_oversized_passages() ->
     message = json.loads(generation_message("What does the source say?", context))
     assert message["reference_data"][0]["text"] == injection
     assert message["reference_data"][0]["citation_id"] == "small"
+
+
+def test_truncated_model_output_is_not_accepted_as_a_complete_answer() -> None:
+    record = json.loads(Path("tests/fixtures/records.json").read_text(encoding="utf-8"))["chunk"]
+    chunk = ChunkRecord.model_validate(record)
+    context = assemble_context(
+        [RetrievedHit(chunk=chunk, method="bm25", rank=1, score=1)], RetrievalConfig()
+    )
+    config = PipelineConfig(
+        models={"generation_model_id": "configured-test-model"},
+        cloud={"region": "us-east-1", "development_model_budget_usd": 1},
+    )
+    client = Mock()
+    client.converse.return_value = {
+        "stopReason": "max_tokens",
+        "output": {"message": {"content": [{"text": "partial answer"}]}},
+    }
+    with pytest.raises(ValueError, match="max_tokens"):
+        converse_text(client, config, "What happens to old versions?", context)

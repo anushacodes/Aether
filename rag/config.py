@@ -76,6 +76,13 @@ class EmbeddingConfig(Record):
     max_requests_per_run: int = Field(default=500, ge=1, le=500)
 
 
+class GenerationConfig(Record):
+    """Bound answer length and keep reproducible generation settings explicit."""
+
+    max_output_tokens: int = Field(default=512, ge=1, le=4096)
+    temperature: float = Field(default=0, ge=0, le=1, allow_inf_nan=False)
+
+
 class IndexConfig(Record):
     """Name the local corpus index independently of OpenSearch connectivity."""
 
@@ -90,6 +97,7 @@ class PipelineConfig(Record):
     models: ModelConfig = Field(default_factory=ModelConfig)
     embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
     index: IndexConfig = Field(default_factory=IndexConfig)
+    generation: GenerationConfig = Field(default_factory=GenerationConfig)
     cloud: CloudConfig = Field(default_factory=CloudConfig)
     opensearch_url: HttpUrl = HttpUrl("http://localhost:9200")
 

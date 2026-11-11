@@ -11,7 +11,7 @@ from opensearchpy import OpenSearch
 from rag.config import PipelineConfig
 from rag.embeddings import Embedder
 from rag.fusion import reciprocal_rank_fusion
-from rag.models import RetrievalResult, RetrievedHit, SearchScope
+from rag.models import RetrievalResult, RetrievedHit, SearchRequest, SearchScope
 from rag.retrieval import bm25_search, vector_search
 
 
@@ -45,6 +45,7 @@ def retrieve(
     embedder: Embedder | None = None,
 ) -> RetrievalResult:
     """Run the requested retrievers; hybrid starts independent work concurrently."""
+    query = SearchRequest(query=query, mode=mode, scope=scope).query
     started = perf_counter()
     if mode == "bm25":
         hits, timings = _keyword_stage(client, config, query, scope)

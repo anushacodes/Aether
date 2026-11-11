@@ -6,9 +6,10 @@ import json
 import re
 from dataclasses import dataclass
 
-from rag.config import RetrievalConfig
+from rag.aws_clients import BedrockRuntime
+from rag.config import PipelineConfig, RetrievalConfig
 from rag.fusion import diversify_evidence
-from rag.models import ChunkRecord, RetrievedHit
+from rag.models import ChunkRecord, RetrievedHit, SearchRequest
 
 PROMPT_VERSION = "grounded-v1"
 MAX_CHARACTERS_PER_ESTIMATED_TOKEN = 8
@@ -29,6 +30,15 @@ class AssembledContext:
     text: str
     evidence: list[ChunkRecord]
     estimated_tokens: int
+
+
+@dataclass(frozen=True)
+class GeneratedText:
+    """A complete provider response and its reported token usage."""
+
+    text: str
+    input_tokens: int
+    output_tokens: int
 
 
 def _reference(chunk: ChunkRecord) -> dict[str, object]:
@@ -70,3 +80,31 @@ def generation_message(question: str, context: AssembledContext) -> str:
     return json.dumps(
         {"question": question, "reference_data": json.loads(context.text)}, ensure_ascii=False
     )
+
+
+def converse_text(
+    client: BedrockRuntime, config: PipelineConfig, question: str, context: AssembledContext
+) -> GeneratedText:
+    """Generate a bounded answer through Converse, rejecting interrupted or filtered output."""
+    question = SearchRequest(query=question).query
+    if not context.evidence:
+        raise ValueError("Generation requires original source evidence")
+    config.require_cloud_settings()
+    response = client.converse(
+        modelId=config.models.generation_model_id,
+        system=[{"text": GROUNDING_INSTRUCTIONS}],
+        messages=[{"role": "user", "content": [{"text": generation_message(question, context)}]}],
+        inferenceConfig={
+            "maxTokens": config.generation.max_output_tokens,
+            "temperature": config.generation.temperature,
+        },
+    )
+    if response.get("stopReason") not in {"end_turn", "stop_sequence"}:
+        raise ValueError(f"Generation did not finish normally: {response.get('stopReason')}")
+    text = "\n".join(
+        block["text"] for block in response["output"]["message"]["content"] if "text" in block
+    ).strip()
+    if not text:
+        raise ValueError("Generation returned no answer text")
+    usage = response.get("usage", {})
+    return GeneratedText(text, usage.get("inputTokens", 0), usage.get("outputTokens", 0))

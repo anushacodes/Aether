@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 from typing import Annotated, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, StringConstraints, model_validator
 
 Guide = Literal["s3-userguide", "s3-api"]
 Digest = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
@@ -202,6 +202,14 @@ class SearchScope(Record):
     )
     source_scope: Literal["general-purpose"] = "general-purpose"
     corpus_id: Identifier | None = None
+
+
+class SearchRequest(Record):
+    """Validate a bounded question and preserve source restrictions across every entry point."""
+
+    query: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
+    mode: Literal["bm25", "vector", "hybrid"] = "bm25"
+    scope: SearchScope = Field(default_factory=SearchScope)
 
 
 class AnswerResult(Record):
