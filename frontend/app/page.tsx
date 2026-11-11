@@ -9,7 +9,6 @@ import {
 } from "react";
 import {
   retrieveSources,
-  sourceLink,
   streamAnswer,
   type Chunk,
   type Guide,
@@ -17,6 +16,9 @@ import {
   type SearchRequest,
   type AnswerResult,
 } from "./search-api";
+
+import { SourceInspector } from "./source-inspector";
+import { WorkspaceHeader } from "./workspace-header";
 
 type Phase =
   | "idle"
@@ -75,7 +77,8 @@ const MESSAGES: Record<string, string> = {
   incomplete_generation:
     "The model stopped before completing an answer. Any partial text is unverified. Try again.",
   invalid_response: "The service returned an unreadable response. Try again.",
-  invalid_dependency_response: "The model response could not be validated. Review the sources or try again.",
+  invalid_dependency_response:
+    "The model response could not be validated. Review the sources or try again.",
   workflow_budget_exhausted:
     "The evidence check reached its model-call limit. Try answering without the extra check, or use Find sources.",
 };
@@ -103,58 +106,6 @@ function answerWithCitations(
         </button>
       );
     });
-}
-
-function SourceInspector({ chunk }: { chunk: Chunk }) {
-  const snapshot = sourceLink(chunk.provenance.repository_url);
-  const publisher = sourceLink(chunk.provenance.publisher_url);
-  return (
-    <>
-      <div className="passage-heading">
-        <h3>{chunk.heading_path.at(-1)}</h3>
-        <p>
-          {chunk.provenance.guide === "s3-api" ? "API reference" : "User guide"}{" "}
-          · General-purpose buckets
-        </p>
-      </div>
-      <pre className="passage">{chunk.original_text}</pre>
-      <details className="provenance">
-        <summary>Source details</summary>
-        <dl>
-          <dt>Section</dt>
-          <dd>{chunk.heading_path.join(" / ")}</dd>
-          <dt>Corpus</dt>
-          <dd>{chunk.corpus_id}</dd>
-          <dt>Chunk</dt>
-          <dd>{chunk.chunk_id}</dd>
-          <dt>Snapshot revision</dt>
-          <dd>{chunk.provenance.revision}</dd>
-          <dt>File SHA-256</dt>
-          <dd>{chunk.provenance.sha256}</dd>
-          <dt>Section raw characters</dt>
-          <dd>
-            {chunk.section_raw_start}–{chunk.section_raw_end}
-          </dd>
-        </dl>
-      </details>
-      <div className="source-links">
-        {snapshot && (
-          <a href={snapshot} target="_blank" rel="noreferrer">
-            Pinned source snapshot
-          </a>
-        )}
-        {publisher && (
-          <a href={publisher} target="_blank" rel="noreferrer">
-            Current AWS documentation
-          </a>
-        )}
-      </div>
-      <p className="source-note">
-        Passage text comes from the pinned snapshot. The current AWS page may
-        have changed.
-      </p>
-    </>
-  );
 }
 
 export default function Home() {
@@ -288,12 +239,7 @@ export default function Home() {
 
   return (
     <main>
-      <header className="masthead">
-        <a href="/" className="wordmark">
-          S3 Knowledge Engine
-        </a>
-        <span>Documentation workspace</span>
-      </header>
+      <WorkspaceHeader current="ask" />
       <section className="question-area" aria-labelledby="question-heading">
         <h1 id="question-heading">Ask about S3. Inspect the sources.</h1>
         <p className="intro">
