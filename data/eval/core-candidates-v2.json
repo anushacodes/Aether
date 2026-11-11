@@ -1,0 +1,4155 @@
+{
+  "dataset_id": "s3-core-candidate-bank-v2",
+  "corpus_id": "s3-core-v1",
+  "review_status": "source_checked_by_assistant_pending_human_review",
+  "note": "120 unreviewed candidates for the pinned historical 40-section corpus: 40 factual (including four API-parameter questions), 25 troubleshooting/paraphrase, 20 multi-section, 15 comparison and 20 unsupported. The original core-001 through core-020 objects and their source spans are copied unchanged from the preserved v1 dataset. The original 20 remain development-exposed; all 100 additions have candidate splits and cannot be evaluated before assignment. This is not a 60/60 freeze. The 100 additions have not been run through retrieval, generation or judging. Known development-exposed questions/groups must stay out of held-out data. Group IDs and positive-only grades are provisional, not exhaustive judgments or proof of independence. Human review of scope, answers, qualifiers, alternative evidence, groups and split is required before freezing/scoring a new dataset. Historical source statements do not verify current AWS behavior.",
+  "questions": [
+    {
+      "question_id": "core-001",
+      "query": "One part of my multipart upload failed in transit. Do I need to restart the whole object upload?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. Retransmit the failed part; this does not affect other uploaded parts. S3 assembles the object after all parts are uploaded.",
+      "reference_passage_ids": [
+        "multipart-retry"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-001",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "multipart-retry": 2
+      },
+      "required_evidence_groups": [
+        [
+          "multipart-retry"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-002",
+      "query": "What happens if I upload a new multipart part using a part number I already uploaded?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The new part overwrites the previously uploaded part with that part number.",
+      "reference_passage_ids": [
+        "multipart-reused-part"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "multipart-part-records",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "multipart-reused-part": 2
+      },
+      "required_evidence_groups": [
+        [
+          "multipart-reused-part"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-003",
+      "query": "Can I assume that the ETag returned after completing a multipart upload is the MD5 hash of the object?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. The combined object ETag is not necessarily an MD5 hash of the object data.",
+      "reference_passage_ids": [
+        "multipart-combined-etag"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-003",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "multipart-combined-etag": 2
+      },
+      "required_evidence_groups": [
+        [
+          "multipart-combined-etag"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-004",
+      "query": "ListParts has more than 1,000 uploaded parts to return. Which response fields and next request parameter let me fetch the rest?",
+      "category": "api_parameter",
+      "permitted_guides": [
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "A response returns at most 1,000 parts. If IsTruncated is true, use its NextPartNumberMarker value as the part-number-marker query parameter in the next ListParts request.",
+      "reference_passage_ids": [
+        "listparts-pagination"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-004",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "listparts-pagination": 2
+      },
+      "required_evidence_groups": [
+        [
+          "listparts-pagination"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-005",
+      "query": "I aborted a multipart upload while parts were still uploading. How can I check that all part storage has been freed?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "In-progress part uploads may still succeed or fail, so aborting the upload more than once may be necessary. Call ListParts and verify that its parts list is empty.",
+      "reference_passage_ids": [
+        "abort-inflight-parts"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-005",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "abort-inflight-parts": 2
+      },
+      "required_evidence_groups": [
+        [
+          "abort-inflight-parts"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-006",
+      "query": "Does an HTTP 200 OK header from CompleteMultipartUpload always mean the upload completed successfully?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. Processing can fail after the initial 200 OK header, and an error can be embedded in that response. A direct API client must parse the response body and handle the result.",
+      "reference_passage_ids": [
+        "complete-embedded-error"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-006",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "complete-embedded-error": 2
+      },
+      "required_evidence_groups": [
+        [
+          "complete-embedded-error"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-007",
+      "query": "Can a single S3 GET retrieve two disjoint byte ranges from one object?",
+      "category": "api_parameter",
+      "permitted_guides": [
+        "s3-userguide"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. The selected guide says S3 does not support retrieving multiple ranges of data in one GET request.",
+      "reference_passage_ids": [
+        "download-single-range"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-007",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "download-single-range": 2
+      },
+      "required_evidence_groups": [
+        [
+          "download-single-range"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-008",
+      "query": "What happens if the checksum I send with an upload differs from the checksum S3 calculates using that algorithm?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "S3 compares the supplied checksum with its calculated value and reports an error if they do not match.",
+      "reference_passage_ids": [
+        "upload-checksum-mismatch"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-008",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "upload-checksum-mismatch": 2
+      },
+      "required_evidence_groups": [
+        [
+          "upload-checksum-mismatch"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-009",
+      "query": "Can I use PutObject to change just one metadata value without sending the entire object?",
+      "category": "api_parameter",
+      "permitted_guides": [
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. PutObject cannot update only a single metadata value; put the entire object with the updated metadata.",
+      "reference_passage_ids": [
+        "putobject-metadata"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-009",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "putobject-metadata": 2
+      },
+      "required_evidence_groups": [
+        [
+          "putobject-metadata"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-010",
+      "query": "For a missing object, why might HeadObject return 403 rather than 404?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "For a missing object, S3 returns 404 when the requester has s3:ListBucket on the bucket and 403 when that permission is absent.",
+      "reference_passage_ids": [
+        "headobject-missing-key"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-010",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "headobject-missing-key": 2
+      },
+      "required_evidence_groups": [
+        [
+          "headobject-missing-key"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-011",
+      "query": "Will a bucket policy denying every action stop an existing S3 Lifecycle rule from deleting or transitioning objects?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. A bucket policy cannot prevent deletions or transitions performed by an S3 Lifecycle rule; the lifecycle configuration still functions normally.",
+      "reference_passage_ids": [
+        "lifecycle-bucket-deny"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-011",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "lifecycle-bucket-deny": 2
+      },
+      "required_evidence_groups": [
+        [
+          "lifecycle-bucket-deny"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-012",
+      "query": "If a bucket has less restrictive Block Public Access settings than its account, which settings does S3 apply?",
+      "category": "comparison",
+      "permitted_guides": [
+        "s3-userguide"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "S3 applies the most restrictive combination of the applicable access point, bucket, and account Block Public Access settings.",
+      "reference_passage_ids": [
+        "public-access-restriction"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-012",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "public-access-restriction": 2
+      },
+      "required_evidence_groups": [
+        [
+          "public-access-restriction"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-013",
+      "query": "Does changing an existing object’s tags create a new version in a versioning-enabled bucket?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. Changing tags does not PUT a new object, so it does not create a new object version. Operations such as CopyObject can create versions because they implement a PUT.",
+      "reference_passage_ids": [
+        "versioning-tag-change"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-013",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "versioning-tag-change": 2
+      },
+      "required_evidence_groups": [
+        [
+          "versioning-tag-change"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-014",
+      "query": "How does GET respond when the current version is a delete marker, compared with a GET explicitly requesting the delete marker’s version ID?",
+      "category": "comparison",
+      "permitted_guides": [
+        "s3-userguide"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Without versionId and with a current delete marker, S3 returns 404 and x-amz-delete-marker: true. When versionId identifies a delete marker, S3 returns 405, that header, and Last-Modified for GetObject or HeadObject.",
+      "reference_passage_ids": [
+        "delete-marker-current-get",
+        "delete-marker-version-get"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "delete-marker-recovery",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "delete-marker-current-get": 2,
+        "delete-marker-version-get": 2
+      },
+      "required_evidence_groups": [
+        [
+          "delete-marker-current-get"
+        ],
+        [
+          "delete-marker-version-get"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-015",
+      "query": "The current version is a delete marker. Will deleting by key alone remove that marker, and how do I remove the marker permanently?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "A key-only DeleteObject adds another delete marker. To remove the delete marker permanently, specify that marker’s version ID in DeleteObject.",
+      "reference_passage_ids": [
+        "delete-marker-exact-delete",
+        "delete-marker-key-only-delete"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "delete-marker-recovery",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "delete-marker-exact-delete": 2,
+        "delete-marker-key-only-delete": 2
+      },
+      "required_evidence_groups": [
+        [
+          "delete-marker-exact-delete"
+        ],
+        [
+          "delete-marker-key-only-delete"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-016",
+      "query": "Does an ordinary lifecycle Expiration action remove noncurrent versions, or is a separate action needed?",
+      "category": "comparison",
+      "permitted_guides": [
+        "s3-userguide"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Ordinary object expiration affects only the current version. Use NoncurrentVersionExpiration to permanently delete noncurrent versions; those deleted versions cannot be recovered.",
+      "reference_passage_ids": [
+        "expiration-current-only",
+        "expiration-noncurrent-action"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-016",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "expiration-current-only": 2,
+        "expiration-noncurrent-action": 2
+      },
+      "required_evidence_groups": [
+        [
+          "expiration-current-only"
+        ],
+        [
+          "expiration-noncurrent-action"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-017",
+      "query": "Can I apply an AbortIncompleteMultipartUpload lifecycle action using a tag-based filter?",
+      "category": "api_parameter",
+      "permitted_guides": [
+        "s3-userguide"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. A lifecycle rule using AbortIncompleteMultipartUpload cannot specify a tag-based filter.",
+      "reference_passage_ids": [
+        "abort-lifecycle-filter"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "core-evidence-017",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "abort-lifecycle-filter": 2
+      },
+      "required_evidence_groups": [
+        [
+          "abort-lifecycle-filter"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-018",
+      "query": "What information should my uploader retain for CompleteMultipartUpload, and should I build that request from the returned multipart listing?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Retain each uploaded part number and the ETag S3 returns and include them in completion. Maintain your own list: the guide says to use returned listings only for verification, not to construct the completion request.",
+      "reference_passage_ids": [
+        "multipart-record-etags",
+        "multipart-listing-verification"
+      ],
+      "expected_answerability": "answerable",
+      "split": "development",
+      "group_id": "multipart-part-records",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "multipart-record-etags": 2,
+        "multipart-listing-verification": 2
+      },
+      "required_evidence_groups": [
+        [
+          "multipart-record-etags"
+        ],
+        [
+          "multipart-listing-verification"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-019",
+      "query": "Is my production bucket customer-invoices public right now?",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The selected documentation cannot establish the live access state of a particular bucket.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "development",
+      "group_id": "core-evidence-019",
+      "review_status": "draft",
+      "unanswerable_reason": "The corpus contains documentation, not live account or bucket policy/configuration state.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    },
+    {
+      "question_id": "core-020",
+      "query": "How do I configure CreateSession authentication for an S3 Express One Zone directory bucket?",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The selected general-purpose-bucket corpus does not include the directory-bucket session procedure.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "development",
+      "group_id": "core-evidence-020",
+      "review_status": "draft",
+      "unanswerable_reason": "S3 Express and directory-bucket operational procedures are explicitly outside the selected corpus.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    },
+    {
+      "question_id": "core-021",
+      "query": "In the selected upload snapshot, what is the largest file the S3 console can upload, and which interfaces are suggested above that limit?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The snapshot gives a 160 GB console limit. For larger files it names the AWS CLI, AWS SDKs, or S3 REST API.",
+      "reference_passage_ids": [
+        "bank-console-limit"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-console-limits",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-console-limit": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-console-limit"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-022",
+      "query": "What single-PUT object-size ceiling is stated in the selected upload overview?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The selected historical overview says a single PUT operation can upload an object up to 5 GB.",
+      "reference_passage_ids": [
+        "bank-single-put"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-single-put-limit",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-single-put": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-single-put"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-023",
+      "query": "At about what object size does the selected guide suggest considering multipart upload?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "It recommends considering multipart upload when the object size reaches 100 MB.",
+      "reference_passage_ids": [
+        "bank-multipart-threshold"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-multipart-threshold",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-multipart-threshold": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-multipart-threshold"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-024",
+      "query": "What identifier does CreateMultipartUpload return, and how does its selected API description say subsequent part and final requests use it?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "It returns an upload ID associating the parts of that upload. Include it in upload-part requests and the final complete or abort request.",
+      "reference_passage_ids": [
+        "bank-initiate-id"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-upload-identifier",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-initiate-id": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-initiate-id"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-025",
+      "query": "What part-number range does the selected guide allow, and what does a part number identify?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Part numbers range from 1 through 10,000. A number identifies a part and its position in the object.",
+      "reference_passage_ids": [
+        "bank-part-numbering"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "multipart-part-records",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-part-numbering": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-part-numbering"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-026",
+      "query": "When a multipart upload completes, what determines the order in which S3 concatenates its parts?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "S3 concatenates the parts in ascending order of part number.",
+      "reference_passage_ids": [
+        "bank-part-assembly"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-assembly-order",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-part-assembly": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-part-assembly"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-027",
+      "query": "What happens to object metadata supplied at multipart initiation when the upload is successfully completed?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "S3 associates that metadata with the assembled object. The separate uploaded parts no longer exist after successful completion.",
+      "reference_passage_ids": [
+        "bank-part-assembly"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-multipart-metadata",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-part-assembly": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-part-assembly"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-028",
+      "query": "Does the selected multipart overview assign an automatic expiry time to an initiated upload?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. It says there is no expiry after initiation; the upload must explicitly be completed or stopped.",
+      "reference_passage_ids": [
+        "bank-multipart-no-expiry"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-multipart-expiry",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-multipart-no-expiry": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-multipart-no-expiry"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-029",
+      "query": "In the ListParts description, what is the default maximum number of parts returned, and which parameter can reduce a response's part count?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The default and maximum are 1,000 parts. The max-parts request parameter can restrict the number returned.",
+      "reference_passage_ids": [
+        "listparts-pagination"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "core-evidence-004",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "listparts-pagination": 2
+      },
+      "required_evidence_groups": [
+        [
+          "listparts-pagination"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-030",
+      "query": "Which four SHA or CRC checksum algorithms are listed in the selected object-integrity passage?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "CRC-32, CRC-32C, SHA-1, and SHA-256.",
+      "reference_passage_ids": [
+        "bank-checksum-algorithms"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-checksum-algorithms",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-checksum-algorithms": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-checksum-algorithms"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-031",
+      "query": "How does the selected integrity guide say to apply an additional checksum algorithm to data already uploaded to S3?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Copy the object. During copying, choose whether to retain its checksum algorithm or use a new one.",
+      "reference_passage_ids": [
+        "bank-checksum-copy"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-checksum-copy",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-checksum-copy": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-checksum-copy"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-032",
+      "query": "After an upload, what must be consistent between a retrieved checksum and the local checksum used to verify it?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Compare the retrieved value with a precalculated or previously stored checksum computed using the same algorithm.",
+      "reference_passage_ids": [
+        "bank-checksum-compare"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "core-evidence-008",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-checksum-compare": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-checksum-compare"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-033",
+      "query": "What prerequisite does the selected download guide state for downloading an archived object?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "An archived object must be restored before downloading it. Nonarchived objects are accessible in real time.",
+      "reference_passage_ids": [
+        "bank-archived-download"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-archived-download",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-archived-download": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-archived-download"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-034",
+      "query": "What access route does the selected download guide suggest when I need an object I do not own?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Ask the object owner to generate a presigned URL that allows the download.",
+      "reference_passage_ids": [
+        "bank-owner-download"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-owner-download",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-owner-download": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-owner-download"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-035",
+      "query": "Can S3 Block Public Access settings be configured separately on one object according to the selected guide?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. The supported levels are access points, buckets, and AWS accounts, not individual objects.",
+      "reference_passage_ids": [
+        "bank-bpa-levels"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-bpa-levels",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-bpa-levels": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-bpa-levels"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-036",
+      "query": "What geographic scope and propagation caveat apply to account-level Block Public Access settings in the selected guide?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "They apply globally across AWS Regions. They may not take effect everywhere immediately or simultaneously, but eventually propagate to all Regions.",
+      "reference_passage_ids": [
+        "bank-bpa-levels"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-bpa-propagation",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-bpa-levels": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-bpa-levels"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-037",
+      "query": "With BlockPublicAcls enabled, how does S3 treat a PUT Object request that includes a public ACL?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The request fails. The setting rejects the specified operations when they include a public ACL; it does not modify existing policies or ACLs.",
+      "reference_passage_ids": [
+        "bank-block-acls"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-public-acl-controls",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-block-acls": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-block-acls"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-038",
+      "query": "Does enabling IgnorePublicAcls delete the public ACLs already stored on a bucket and its objects?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. S3 ignores the public ACLs for access enforcement, but the setting does not change their persistence or prevent new public ACLs from being set.",
+      "reference_passage_ids": [
+        "bank-ignore-acls"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-public-acl-controls",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-ignore-acls": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-ignore-acls"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-039",
+      "query": "Who can associate a bucket policy with a bucket, and what kind of policy is it?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Only the bucket owner can associate it. It is a resource-based policy for the bucket and its objects; the selected generic description limits the attached permissions to objects owned by the bucket owner.",
+      "reference_passage_ids": [
+        "bank-bucket-policy"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-bucket-policy",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-bucket-policy": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-bucket-policy"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-040",
+      "query": "With Object Ownership set to Bucket owner enforced, who owns uploaded objects and which access mechanism replaces ACLs?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The bucket owner owns all objects. ACLs are disabled and access is managed exclusively using policies.",
+      "reference_passage_ids": [
+        "bank-object-ownership"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-object-ownership",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-object-ownership": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-object-ownership"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-041",
+      "query": "Can an application choose or edit an S3 version ID, and how does the selected passage describe its format?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Only S3 generates version IDs and they cannot be edited. They are opaque, URL-ready, UTF-8-encoded Unicode strings no longer than 1,024 bytes.",
+      "reference_passage_ids": [
+        "bank-version-id-shape"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-version-id-shape",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-version-id-shape": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-version-id-shape"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-042",
+      "query": "When versioning is enabled on an existing bucket, are the IDs, contents, or permissions of its existing objects rewritten?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. Existing objects retain their null version IDs, contents, and permissions. Objects subsequently added receive version IDs.",
+      "reference_passage_ids": [
+        "bank-existing-null"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-existing-null",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-existing-null": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-existing-null"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-043",
+      "query": "Does a PUT using an existing key in a versioning-enabled bucket overwrite the older stored version?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. The older version remains, and S3 assigns a new version ID and adds the newer version.",
+      "reference_passage_ids": [
+        "bank-version-overwrite"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-version-overwrite",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-version-overwrite": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-version-overwrite"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-044",
+      "query": "What storage size and storage class does the selected guide attribute to a delete marker?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Its storage size equals the UTF-8 size of its key name, described as one to four bytes per character. Delete markers use the S3 Standard storage class.",
+      "reference_passage_ids": [
+        "bank-marker-storage"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-marker-storage",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-marker-storage": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-marker-storage"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-045",
+      "query": "Does permanently deleting a specified data version insert a new delete marker?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. When DELETE specifies the versionId, that version is permanently deleted and S3 does not insert a delete marker.",
+      "reference_passage_ids": [
+        "bank-version-delete"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-version-delete",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-version-delete": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-version-delete"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-046",
+      "query": "Which IAM action does the selected ListObjectVersions opening require, despite its different API operation name?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "s3:ListBucketVersions.",
+      "reference_passage_ids": [
+        "bank-versions-permission"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-versions-permission",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-versions-permission": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-versions-permission"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-047",
+      "query": "What object identifier must a GetObject request specify according to the selected API opening?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The full object key name.",
+      "reference_passage_ids": [
+        "bank-get-key"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-get-key",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-get-key": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-get-key"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-048",
+      "query": "What default access state does the selected access-control overview assign to S3 resources, and who controls additional access?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Resources are private by default. The resource owner's account root user and appropriately permitted IAM users can access their created resources; the owner decides who else can access them and perform which actions.",
+      "reference_passage_ids": [
+        "bank-private-default"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-private-default",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-private-default": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-private-default"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-049",
+      "query": "How many keys can one DeleteObjects request contain, and how is each key's outcome reported?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Up to 1,000 keys. S3 returns success or failure per key; an object not found is reported as deleted.",
+      "reference_passage_ids": [
+        "bank-bulk-delete"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-bulk-delete",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-bulk-delete": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-bulk-delete"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-050",
+      "query": "What lifecycle rule metadata determines whether its configured actions are performed?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The rule includes an ID and enabled/disabled status. S3 performs none of the rule's actions while it is disabled.",
+      "reference_passage_ids": [
+        "bank-rule-status"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-lifecycle-status",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-rule-status": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-rule-status"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-051",
+      "query": "Does PutBucketLifecycleConfiguration patch an existing configuration or replace it?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "It creates a new configuration or replaces the existing one. Include every detail that should be retained in the new configuration.",
+      "reference_passage_ids": [
+        "bank-put-lifecycle-replace"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-lifecycle-replacement",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-put-lifecycle-replace": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-put-lifecycle-replace"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-052",
+      "query": "Which special error and HTTP status does GetBucketLifecycleConfiguration return when no lifecycle configuration exists?",
+      "category": "direct_fact",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "NoSuchLifecycleConfiguration with HTTP 404 Not Found.",
+      "reference_passage_ids": [
+        "bank-get-lifecycle-missing"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-lifecycle-missing",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-get-lifecycle-missing": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-get-lifecycle-missing"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-053",
+      "query": "A 200 GB file exceeds the console limit described in this snapshot. Which interfaces and upload approach does the selected overview point me toward?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Use the AWS CLI, an SDK, or the REST API rather than the console. The overview provides multipart upload for objects larger than the single-PUT ceiling.",
+      "reference_passage_ids": [
+        "bank-console-limit",
+        "bank-single-put",
+        "bank-multipart-size"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-console-limits",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-console-limit": 2,
+        "bank-single-put": 2,
+        "bank-multipart-size": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-console-limit"
+        ],
+        [
+          "bank-single-put"
+        ],
+        [
+          "bank-multipart-size"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-054",
+      "query": "My multipart uploader keeps object metadata only in its local configuration. At what phase must it send that metadata so S3 can attach it to the final object?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Supply the object metadata in the multipart initiation request, rather than relying on local metadata or individual part data.",
+      "reference_passage_ids": [
+        "bank-initiate-metadata"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-multipart-metadata",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-initiate-metadata": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-initiate-metadata"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-055",
+      "query": "A multipart upload using additional checksums has gaps in its part numbers and completion returns HTTP 500. What documented numbering rule should I check?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Additional-checksum multipart uploads require consecutive part numbers. The selected passage explicitly associates nonconsecutive completion with HTTP 500 Internal Server Error.",
+      "reference_passage_ids": [
+        "bank-checksum-sequence"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-checksum-sequence",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-checksum-sequence": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-checksum-sequence"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-056",
+      "query": "After aborting a multipart upload, can I resume UploadPart requests using that same upload ID?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. The selected AbortMultipartUpload description says no additional parts can be uploaded using an aborted upload's ID.",
+      "reference_passage_ids": [
+        "bank-abort-no-resume"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "core-evidence-005",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-abort-no-resume": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-abort-no-resume"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-057",
+      "query": "Several part uploads are still in progress, but ListParts does not show them. Does the selected listing guide say unfinished parts belong in that response?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. Returned part listings omit parts that have not finished uploading.",
+      "reference_passage_ids": [
+        "bank-listparts-inflight"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "multipart-part-records",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-listparts-inflight": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-listparts-inflight"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-058",
+      "query": "CompleteMultipartUpload sends a 200 header and then whitespace for a while. Do the initial header and whitespace establish a final successful completion?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. Processing can take several minutes and whitespace keeps the connection from timing out. The final response can still contain an embedded error, so parse and handle its contents.",
+      "reference_passage_ids": [
+        "bank-completion-heartbeat",
+        "complete-embedded-error"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "core-evidence-006",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-completion-heartbeat": 2,
+        "complete-embedded-error": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-completion-heartbeat"
+        ],
+        [
+          "complete-embedded-error"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-059",
+      "query": "My HEAD client receives a generic error code but no detailed exception body. Can it recover the exact server exception from that HeadObject response?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. HEAD has no response body and the selected description says its generic error codes do not expose the exact exception.",
+      "reference_passage_ids": [
+        "bank-head-shape"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-head-errors",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-head-shape": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-head-shape"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-060",
+      "query": "A HeadObject client is assembling 9 KB of request headers. Which limit in the selected API description does this exceed?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The documented request-header limit is 8 KB.",
+      "reference_passage_ids": [
+        "bank-head-headers"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-head-header-limit",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-head-headers": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-head-headers"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-061",
+      "query": "BlockPublicAcls is enabled and my PUT Object includes a public ACL. Is S3 documented to accept the write and merely ignore that ACL?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. That setting rejects the specified PUT when it includes a public ACL. IgnorePublicAcls is the separately described ignore-without-rejecting mechanism.",
+      "reference_passage_ids": [
+        "bank-block-acls",
+        "bank-ignore-acls"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-public-acl-controls",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-block-acls": 2,
+        "bank-ignore-acls": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-block-acls"
+        ],
+        [
+          "bank-ignore-acls"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-062",
+      "query": "I previously used Block Public Access to suppress an existing public ACL. Could removing that block make the resource public again even if I never create another ACL?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Yes. The selected passage says the settings do not alter existing policies or ACLs, so removing the block can expose a resource whose public policy or ACL remains.",
+      "reference_passage_ids": [
+        "bank-bpa-removal"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-bpa-removal",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-bpa-removal": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-bpa-removal"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-063",
+      "query": "An account-level Block Public Access change has not appeared in every Region simultaneously. Does the selected guide promise immediate global convergence?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. It explicitly allows delayed or nonsimultaneous propagation, although the account settings eventually apply across all Regions.",
+      "reference_passage_ids": [
+        "bank-bpa-levels"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-bpa-propagation",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-bpa-levels": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-bpa-levels"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-064",
+      "query": "I enabled versioning, but an older object still has a null version ID. Does the selected version-ID passage treat that as a failed enablement?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No. Existing objects retain their null IDs, contents and permissions; subsequently added objects receive version IDs.",
+      "reference_passage_ids": [
+        "bank-existing-null"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-existing-null",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-existing-null": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-existing-null"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-065",
+      "query": "What version-count condition does the selected guide say might accompany a significant increase in 503 responses for PUT or DELETE in a versioning-enabled bucket?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "One possible condition is one or more objects with millions of versions. The passage does not establish that as the cause of every 503.",
+      "reference_passage_ids": [
+        "bank-version-503"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-version-count",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-version-503": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-version-503"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-066",
+      "query": "Replication status is Pending and expiration is not acting on a current or noncurrent version. What exception is documented in the selected expiration passage?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The selected expiration note says S3 takes no action on current or noncurrent versions whose replication status is Pending.",
+      "reference_passage_ids": [
+        "bank-expiration-pending"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-expiration-pending",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-expiration-pending": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-expiration-pending"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-067",
+      "query": "My noncurrent-expiration rule specifies how many newer noncurrent versions to retain but omits Filter, and I get InvalidRequest. What requirement does the selected guide identify?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Specifying the maximum number of noncurrent versions to retain also requires a Filter element; without it S3 generates InvalidRequest.",
+      "reference_passage_ids": [
+        "bank-expiration-filter"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-expiration-filter",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-expiration-filter": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-expiration-filter"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-068",
+      "query": "Noncurrent versions with an S3 Object Lock configuration remain despite an expiration rule. What exception does the selected expiration note describe?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The note says S3 does not take action on noncurrent versions with the S3 Object Lock configuration applied.",
+      "reference_passage_ids": [
+        "bank-expiration-lock"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-expiration-lock",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-expiration-lock": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-expiration-lock"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-069",
+      "query": "An object is eligible for permanent deletion and a lifecycle transition on the same day. Which action has precedence in the selected conflict rules?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Permanent deletion takes precedence over transition.",
+      "reference_passage_ids": [
+        "bank-expiration-priority"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-expiration-priority",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-expiration-priority": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-expiration-priority"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-070",
+      "query": "A management script sends only a newly added lifecycle rule through PutBucketLifecycleConfiguration and the old rules disappear. Why is that consistent with the selected API description?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The operation replaces the configuration rather than patching it. Retain existing details by including them in the submitted configuration.",
+      "reference_passage_ids": [
+        "bank-put-lifecycle-replace"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-lifecycle-replacement",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-put-lifecycle-replace": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-put-lifecycle-replace"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-071",
+      "query": "GetBucketLifecycleConfiguration returns NoSuchLifecycleConfiguration with 404. What is missing according to that operation's special-error description?",
+      "category": "troubleshooting",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The lifecycle configuration does not exist. The named error is about that configuration, not proof that the bucket itself is absent.",
+      "reference_passage_ids": [
+        "bank-get-lifecycle-missing"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-lifecycle-missing",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-get-lifecycle-missing": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-get-lifecycle-missing"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-072",
+      "query": "Which multipart operation sends new part data in the request, and which uses an existing S3 object as the part's data source?",
+      "category": "comparison",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "UploadPart sends new data. UploadPartCopy uses an existing S3 object as the data source for the part.",
+      "reference_passage_ids": [
+        "bank-uploadpart-copy"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-new-part-vs-copy",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-uploadpart-copy": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-uploadpart-copy"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-073",
+      "query": "How does HeadObject differ from GET when an application only wants an object's metadata?",
+      "category": "comparison",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "HEAD retrieves the metadata without the object itself. It has the same options and response as GET except that HEAD has no response body.",
+      "reference_passage_ids": [
+        "bank-head-shape"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-get-vs-head",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-head-shape": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-head-shape"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-074",
+      "query": "What does listing parts of a multipart upload show, compared with listing in-progress multipart uploads?",
+      "category": "comparison",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "List-parts reports finished parts for one upload. Listing multipart uploads reports uploads initiated but not yet completed or stopped; the selected guide limits each request to at most 1,000 uploads.",
+      "reference_passage_ids": [
+        "bank-listparts-intro"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-multipart-list-kinds",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-listparts-intro": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-listparts-intro"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-075",
+      "query": "How do BlockPublicAcls and IgnorePublicAcls differ for a PUT carrying a public ACL, and does either erase existing ACL records?",
+      "category": "comparison",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "BlockPublicAcls rejects the specified PUTs with public ACLs; IgnorePublicAcls permits public ACLs to be set but ignores their public grants. Neither setting rewrites or deletes the existing ACL records.",
+      "reference_passage_ids": [
+        "bank-block-acls",
+        "bank-ignore-acls"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-public-acl-controls",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-block-acls": 2,
+        "bank-ignore-acls": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-block-acls"
+        ],
+        [
+          "bank-ignore-acls"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-076",
+      "query": "For a bucket, how does BlockPublicPolicy differ from RestrictPublicBuckets when a public policy is involved?",
+      "category": "comparison",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "BlockPublicPolicy rejects a PUT Bucket policy that allows public access. RestrictPublicBuckets restricts access under a public policy to AWS service principals and authorized users in the owning account, blocking other cross-account access except AWS service principals. Enabling these settings does not itself rewrite the stored policy.",
+      "reference_passage_ids": [
+        "bank-block-policy",
+        "bank-restrict-public"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-public-policy-controls",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-block-policy": 2,
+        "bank-restrict-public": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-block-policy"
+        ],
+        [
+          "bank-restrict-public"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-077",
+      "query": "What is the difference between a lifecycle transition action and an expiration action?",
+      "category": "comparison",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "A transition changes the object's storage class at the specified stage of its life. Expiration defines when an object expires and S3 deletes expired objects according to the applicable versioning behavior.",
+      "reference_passage_ids": [
+        "bank-lifecycle-actions"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-lifecycle-action-kinds",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-lifecycle-actions": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-lifecycle-actions"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-078",
+      "query": "How do Enabled and Suspended differ for objects added after setting a bucket's versioning state?",
+      "category": "comparison",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "With Enabled, added objects receive unique version IDs. With Suspended, added objects receive the version ID null.",
+      "reference_passage_ids": [
+        "bank-versioning-states"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-versioning-states",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-versioning-states": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-versioning-states"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-079",
+      "query": "In a versioning-enabled bucket, how does deleting by key alone differ from deleting a specified data version by key and version ID?",
+      "category": "comparison",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "A key-only delete creates a current delete marker and returns its version ID. A delete specifying a data version removes that specific version.",
+      "reference_passage_ids": [
+        "bank-delete-options"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-version-delete",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-delete-options": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-delete-options"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-080",
+      "query": "How do ordinary multipart numbering and numbering with additional checksums differ with respect to gaps?",
+      "category": "comparison",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Ordinary multipart part numbers need not be consecutive. With additional checksums they must be consecutive; the selected passage associates nonconsecutive completion with HTTP 500.",
+      "reference_passage_ids": [
+        "bank-part-numbering",
+        "bank-checksum-sequence"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-checksum-sequence",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-part-numbering": 2,
+        "bank-checksum-sequence": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-part-numbering"
+        ],
+        [
+          "bank-checksum-sequence"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-081",
+      "query": "How does storage for a retained object version differ from storage for its delete marker?",
+      "category": "comparison",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Each object version stores the entire object rather than a diff. A delete marker has no object data or ACL, and its storage size is the UTF-8 size of its key name in S3 Standard.",
+      "reference_passage_ids": [
+        "bank-version-storage",
+        "bank-marker-shape",
+        "bank-marker-storage"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-marker-storage",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-version-storage": 2,
+        "bank-marker-shape": 2,
+        "bank-marker-storage": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-version-storage"
+        ],
+        [
+          "bank-marker-shape"
+        ],
+        [
+          "bank-marker-storage"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-082",
+      "query": "Why might a client choose DeleteObjects instead of individual DeleteObject requests, and what is the documented batch limit?",
+      "category": "comparison",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "DeleteObjects deletes multiple named keys in one HTTP request, reducing per-request overhead. One request can contain up to 1,000 keys and reports each key's result.",
+      "reference_passage_ids": [
+        "bank-bulk-delete"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-bulk-delete",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-bulk-delete": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-bulk-delete"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-083",
+      "query": "How do GetBucketLifecycleConfiguration and PutBucketLifecycleConfiguration differ in purpose and required IAM action?",
+      "category": "comparison",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Get reads the configured lifecycle information and requires s3:GetLifecycleConfiguration. Put creates or replaces the configuration and requires s3:PutLifecycleConfiguration.",
+      "reference_passage_ids": [
+        "bank-get-lifecycle-read",
+        "bank-put-lifecycle-replace",
+        "bank-put-lifecycle-permission"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-lifecycle-replacement",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-get-lifecycle-read": 2,
+        "bank-put-lifecycle-replace": 2,
+        "bank-put-lifecycle-permission": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-get-lifecycle-read"
+        ],
+        [
+          "bank-put-lifecycle-replace"
+        ],
+        [
+          "bank-put-lifecycle-permission"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-084",
+      "query": "For a multipart uploader, which operation returns the shared upload identifier, what must be retained after each part, and how does completion order the parts?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "CreateMultipartUpload returns the upload ID. Retain each part number and its returned ETag for completion. CompleteMultipartUpload assembles the supplied parts in ascending part-number order.",
+      "reference_passage_ids": [
+        "bank-initiate-id",
+        "bank-part-completion-api"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "multipart-part-records",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-initiate-id": 2,
+        "bank-part-completion-api": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-initiate-id"
+        ],
+        [
+          "bank-part-completion-api"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-085",
+      "query": "Will an abandoned multipart upload expire automatically by default, and what lifecycle mechanism can clean up its parts after a chosen number of days?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The overview says initiated uploads have no expiry and require explicit completion or stopping. A lifecycle AbortIncompleteMultipartUpload action can stop incomplete uploads after a specified number of days since initiation and delete their parts.",
+      "reference_passage_ids": [
+        "bank-multipart-no-expiry",
+        "bank-abort-lifecycle-days"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-multipart-expiry",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-multipart-no-expiry": 2,
+        "bank-abort-lifecycle-days": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-multipart-no-expiry"
+        ],
+        [
+          "bank-abort-lifecycle-days"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-086",
+      "query": "I maintain an already-uploaded object and a separate ongoing multipart upload. How can I add a checksum algorithm to the former, and inspect part checksums on the latter?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Copy the existing object and choose the checksum algorithm while copying. For multipart uploads still in progress, use ListParts to retrieve the part checksum values.",
+      "reference_passage_ids": [
+        "bank-checksum-copy",
+        "bank-multipart-checksum-read"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-checksum-maintenance",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-checksum-copy": 2,
+        "bank-multipart-checksum-read": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-checksum-copy"
+        ],
+        [
+          "bank-multipart-checksum-read"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-087",
+      "query": "According to the selected guide, what must happen before downloading bytes 0–500 from an archived object, and what range form does its CLI example use?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Restore the archived object first. The range example uses the bytes= prefix, specifically --range bytes=0-500, with an output file.",
+      "reference_passage_ids": [
+        "bank-archived-download",
+        "bank-range-example"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-archived-download",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-archived-download": 2,
+        "bank-range-example": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-archived-download"
+        ],
+        [
+          "bank-range-example"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-088",
+      "query": "I need selected bytes from an object owned by someone else. What access route does the download guide suggest, and can one GET request fetch two disjoint ranges?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Ask the owner for a presigned URL allowing the download. S3 does not support retrieving multiple ranges of data in a single GET request.",
+      "reference_passage_ids": [
+        "bank-owner-download",
+        "download-single-range"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-owner-download",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-owner-download": 2,
+        "download-single-range": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-owner-download"
+        ],
+        [
+          "download-single-range"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-089",
+      "query": "A client checks metadata before fetching an object's contents. Which operation avoids the object body, and what key information does the subsequent GetObject request need?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Use HeadObject for metadata without the object body. GetObject must specify the full key name.",
+      "reference_passage_ids": [
+        "bank-head-shape",
+        "bank-get-key"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-get-vs-head",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-head-shape": 2,
+        "bank-get-key": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-head-shape"
+        ],
+        [
+          "bank-get-key"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-090",
+      "query": "How can an authorized client read a noncurrent data version and then permanently delete that version when the bucket has MFA Delete enabled?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Specify the version ID when reading the noncurrent version. For permanent deletion use DeleteObject with versionId; with MFA Delete enabled, include x-amz-mfa and use HTTPS.",
+      "reference_passage_ids": [
+        "bank-version-read",
+        "bank-version-delete",
+        "bank-mfa-delete"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-version-delete",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-version-read": 2,
+        "bank-version-delete": 2,
+        "bank-mfa-delete": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-version-read"
+        ],
+        [
+          "bank-version-delete"
+        ],
+        [
+          "bank-mfa-delete"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-091",
+      "query": "When enabling versioning on a bucket that already has objects and an expiration policy, what happens to those existing objects and what policy addition preserves permanent deletion of old versions?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Existing objects retain their null version IDs, data and permissions. Add a noncurrent expiration policy if the previous permanent-delete behavior must continue after versioning is enabled.",
+      "reference_passage_ids": [
+        "bank-existing-null",
+        "bank-enable-noncurrent"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-versioning-lifecycle-migration",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-existing-null": 2,
+        "bank-enable-noncurrent": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-existing-null"
+        ],
+        [
+          "bank-enable-noncurrent"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-092",
+      "query": "Why can an existing lifecycle rule still delete objects despite a deny-all bucket policy, and which permission controls replacing the lifecycle configuration?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The selected guide says a bucket policy cannot prevent lifecycle deletions or transitions. The API requires s3:PutLifecycleConfiguration to create or replace the configuration; an explicit deny still supersedes permission grants.",
+      "reference_passage_ids": [
+        "lifecycle-bucket-deny",
+        "bank-put-lifecycle-permission"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "core-evidence-011",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "lifecycle-bucket-deny": 2,
+        "bank-put-lifecycle-permission": 2
+      },
+      "required_evidence_groups": [
+        [
+          "lifecycle-bucket-deny"
+        ],
+        [
+          "bank-put-lifecycle-permission"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-093",
+      "query": "What makes a lone delete marker expired for lifecycle cleanup, and does leaving that marker consume the old object's full data size?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "It is expired when all object versions have been deleted and only a single marker remains; lifecycle can remove it. A marker has no object data and its storage size is its key's UTF-8 size, not the old object's full size.",
+      "reference_passage_ids": [
+        "bank-expired-marker",
+        "bank-marker-shape",
+        "bank-marker-storage"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-marker-storage",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-expired-marker": 2,
+        "bank-marker-shape": 2,
+        "bank-marker-storage": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-expired-marker"
+        ],
+        [
+          "bank-marker-shape"
+        ],
+        [
+          "bank-marker-storage"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-094",
+      "query": "Can a direct PutObject update only one metadata field, and when must a multipart uploader provide metadata for its final object?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "PutObject must send the entire object with updated metadata rather than changing only one field. Multipart object metadata must be provided at initiation.",
+      "reference_passage_ids": [
+        "putobject-metadata",
+        "bank-initiate-metadata"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "core-evidence-009",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "putobject-metadata": 2,
+        "bank-initiate-metadata": 2
+      },
+      "required_evidence_groups": [
+        [
+          "putobject-metadata"
+        ],
+        [
+          "bank-initiate-metadata"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-095",
+      "query": "An object's current version is a delete marker, but I want a byte range from an older data version. How can I select the data version, and may I request multiple disjoint ranges in one GET?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Select the noncurrent data version by its version ID. The selected range guide does not support multiple ranges in a single GET.",
+      "reference_passage_ids": [
+        "bank-version-read",
+        "download-single-range"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "core-evidence-007",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-version-read": 2,
+        "download-single-range": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-version-read"
+        ],
+        [
+          "download-single-range"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-096",
+      "query": "A diagnostic client lists versions and checks a missing key with HEAD. Which separate permissions affect listing versions and HEAD's 403-versus-404 distinction?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "ListObjectVersions requires s3:ListBucketVersions. HEAD requires the relevant s3:GetObject permission; for a missing object, s3:ListBucket determines whether the selected description returns 404 instead of 403.",
+      "reference_passage_ids": [
+        "bank-versions-permission",
+        "bank-head-permission",
+        "headobject-missing-key"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "core-evidence-010",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-versions-permission": 2,
+        "bank-head-permission": 2,
+        "headobject-missing-key": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-versions-permission"
+        ],
+        [
+          "bank-head-permission"
+        ],
+        [
+          "headobject-missing-key"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-097",
+      "query": "I have 1,001 specific object versions to delete. What batch limit constrains DeleteObjects, and should my client invent or edit their version IDs?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "A DeleteObjects request accepts at most 1,000 keys, with optional version IDs, so 1,001 items require at least two such requests. Use S3-generated opaque version IDs; clients cannot choose or edit them.",
+      "reference_passage_ids": [
+        "bank-bulk-delete",
+        "bank-version-id-shape"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-bulk-delete",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-bulk-delete": 2,
+        "bank-version-id-shape": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-bulk-delete"
+        ],
+        [
+          "bank-version-id-shape"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-098",
+      "query": "How can a management client read existing lifecycle rules and replace them without accidentally dropping retained rules, and which two IAM actions are needed?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Read with GetBucketLifecycleConfiguration using s3:GetLifecycleConfiguration. When writing with PutBucketLifecycleConfiguration, include the details to retain because it replaces the configuration; that write requires s3:PutLifecycleConfiguration.",
+      "reference_passage_ids": [
+        "bank-get-lifecycle-read",
+        "bank-put-lifecycle-replace",
+        "bank-put-lifecycle-permission"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-lifecycle-replacement",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-get-lifecycle-read": 2,
+        "bank-put-lifecycle-replace": 2,
+        "bank-put-lifecycle-permission": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-get-lifecycle-read"
+        ],
+        [
+          "bank-put-lifecycle-replace"
+        ],
+        [
+          "bank-put-lifecycle-permission"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-099",
+      "query": "Which rule status prevents lifecycle actions from running, and what extra requirement applies when NoncurrentVersionExpiration specifies a count of versions to retain?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "A disabled rule performs no actions. Specifying the maximum number of noncurrent versions also requires a Filter element, or S3 returns InvalidRequest.",
+      "reference_passage_ids": [
+        "bank-rule-status",
+        "bank-expiration-filter"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-expiration-filter",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-rule-status": 2,
+        "bank-expiration-filter": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-rule-status"
+        ],
+        [
+          "bank-expiration-filter"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-100",
+      "query": "What default encryption does the selected upload overview describe, and which KMS actions and policy grants are needed for a separate cross-account SSE-KMS multipart upload?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The overview describes SSE-S3 as the default. The multipart permissions passage requires kms:GenerateDataKey and kms:Decrypt for the relevant operations; when the IAM principal is in a different account from the KMS key, permissions are needed in both the key policy and the IAM user or role policy.",
+      "reference_passage_ids": [
+        "bank-upload-encryption",
+        "bank-kms-multipart"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-upload-encryption",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-upload-encryption": 2,
+        "bank-kms-multipart": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-upload-encryption"
+        ],
+        [
+          "bank-kms-multipart"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-101",
+      "query": "After aborting a multipart upload, which API check confirms all parts are gone, and what IAM action is required to make that check?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Call ListParts and verify an empty parts list. The multipart permissions table requires s3:ListMultipartUploadParts for listing parts.",
+      "reference_passage_ids": [
+        "abort-inflight-parts",
+        "bank-listparts-permission"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "core-evidence-005",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "abort-inflight-parts": 2,
+        "bank-listparts-permission": 2
+      },
+      "required_evidence_groups": [
+        [
+          "abort-inflight-parts"
+        ],
+        [
+          "bank-listparts-permission"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-102",
+      "query": "How do IgnorePublicAcls and Bucket owner enforced Object Ownership each affect ACL-based access, and does the former erase stored ACLs?",
+      "category": "multi_section",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "IgnorePublicAcls ignores public ACL grants without removing their stored ACLs. Bucket owner enforced disables ACLs, makes the bucket owner own the objects, and manages access exclusively through policies.",
+      "reference_passage_ids": [
+        "bank-ignore-acls",
+        "bank-object-ownership"
+      ],
+      "expected_answerability": "answerable",
+      "split": "candidate",
+      "group_id": "bank-public-acl-controls",
+      "review_status": "draft",
+      "unanswerable_reason": null,
+      "relevance_grades": {
+        "bank-ignore-acls": 2,
+        "bank-object-ownership": 2
+      },
+      "required_evidence_groups": [
+        [
+          "bank-ignore-acls"
+        ],
+        [
+          "bank-object-ownership"
+        ]
+      ]
+    },
+    {
+      "question_id": "core-103",
+      "query": "What was the exact S3 bill for my production bucket last month, including storage, requests and transfer?",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The selected documentation has no account-specific usage, billing records or applicable current rates, so it cannot calculate that bill.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "candidate",
+      "group_id": "bank-missing-billing",
+      "review_status": "draft",
+      "unanswerable_reason": "The selected documentation has no account-specific usage, billing records or applicable current rates, so it cannot calculate that bill.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    },
+    {
+      "question_id": "core-104",
+      "query": "What is today's maximum general-purpose S3 object size? Verify the answer against current official AWS documentation.",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The corpus is a pinned historical snapshot. It cannot verify today's limit against current documentation, and its historical numbers are not confirmation of the current limit.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "candidate",
+      "group_id": "bank-missing-current-docs",
+      "review_status": "draft",
+      "unanswerable_reason": "The corpus is a pinned historical snapshot. It cannot verify today's limit against current documentation, and its historical numbers are not confirmation of the current limit.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    },
+    {
+      "question_id": "core-105",
+      "query": "What is the SHA-256 checksum of my stored invoice.pdf object? I have not supplied its bytes or stored checksum.",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "No bytes or stored checksum for that object are provided, so its checksum value cannot be determined from the documentation.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "candidate",
+      "group_id": "bank-missing-object-data",
+      "review_status": "draft",
+      "unanswerable_reason": "No bytes or stored checksum for that object are provided, so its checksum value cannot be determined from the documentation.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    },
+    {
+      "question_id": "core-106",
+      "query": "Which exact IAM statement caused my application's latest 403 request? I have supplied no policies, request details or logs.",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The selected passages explain denial concepts but contain none of the policies, request context or logs needed to identify this request's exact cause.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "candidate",
+      "group_id": "bank-missing-request-context",
+      "review_status": "draft",
+      "unanswerable_reason": "The selected passages explain denial concepts but contain none of the policies, request context or logs needed to identify this request's exact cause.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    },
+    {
+      "question_id": "core-107",
+      "query": "Give the complete ListObjectsV2 continuation-token pagination procedure and exact request parameters from the included API reference.",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The selected ranges do not include the ListObjectsV2 request/pagination schema. Mentions of ListObjectsV2 or ListParts pagination are not its complete procedure.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "candidate",
+      "group_id": "bank-missing-listobjects-schema",
+      "review_status": "draft",
+      "unanswerable_reason": "The selected ranges do not include the ListObjectsV2 request/pagination schema. Mentions of ListObjectsV2 or ListParts pagination are not its complete procedure.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    },
+    {
+      "question_id": "core-108",
+      "query": "What exact XML should I send to configure browser CORS on my S3 bucket, using only these selected passages?",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Bucket CORS configuration and its request schema are not part of the selected corpus, so the exact XML is unsupported.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "candidate",
+      "group_id": "bank-missing-cors-schema",
+      "review_status": "draft",
+      "unanswerable_reason": "Bucket CORS configuration and its request schema are not part of the selected corpus, so the exact XML is unsupported.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    },
+    {
+      "question_id": "core-109",
+      "query": "Provide a complete cross-Region S3 replication rule and setup procedure from this subset.",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The subset mentions a Pending replication exception but does not include a replication configuration schema or end-to-end setup procedure.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "candidate",
+      "group_id": "bank-missing-replication-procedure",
+      "review_status": "draft",
+      "unanswerable_reason": "The subset mentions a Pending replication exception but does not include a replication configuration schema or end-to-end setup procedure.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    },
+    {
+      "question_id": "core-110",
+      "query": "How do I configure S3 event notifications to invoke Lambda, including the required notification payload and permissions?",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Event-notification setup, payload schemas and Lambda permissions are absent from the selected ranges.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "candidate",
+      "group_id": "bank-missing-event-notifications",
+      "review_status": "draft",
+      "unanswerable_reason": "Event-notification setup, payload schemas and Lambda permissions are absent from the selected ranges.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    },
+    {
+      "question_id": "core-111",
+      "query": "Which endpoint and authentication procedure should I use to access an S3 on Outposts bucket?",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "S3 on Outposts and its endpoint/authentication procedure are excluded from this general-purpose-bucket corpus.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "candidate",
+      "group_id": "bank-excluded-outposts",
+      "review_status": "draft",
+      "unanswerable_reason": "S3 on Outposts and its endpoint/authentication procedure are excluded from this general-purpose-bucket corpus.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    },
+    {
+      "question_id": "core-112",
+      "query": "What request starts an archive-retrieval job for a standalone Amazon Glacier vault?",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "Standalone Glacier vault/archive APIs are excluded. References to S3 Glacier storage classes do not supply that separate service's job API.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "candidate",
+      "group_id": "bank-excluded-glacier-vault",
+      "review_status": "draft",
+      "unanswerable_reason": "Standalone Glacier vault/archive APIs are excluded. References to S3 Glacier storage classes do not supply that separate service's job API.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    },
+    {
+      "question_id": "core-113",
+      "query": "Give the exact RestoreObject request body and all required parameters for restoring my archived object.",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The selected download overview says archived objects must be restored, but the RestoreObject request schema and complete parameters are not included.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "candidate",
+      "group_id": "bank-missing-restore-schema",
+      "review_status": "draft",
+      "unanswerable_reason": "The selected download overview says archived objects must be restored, but the RestoreObject request schema and complete parameters are not included.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    },
+    {
+      "question_id": "core-114",
+      "query": "Write the complete SelectObjectContent SQL request for filtering rows from a CSV object.",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The corpus does not include SelectObjectContent, its SQL interface or request schema. Byte-range download instructions are not a substitute.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "candidate",
+      "group_id": "bank-missing-selectobject",
+      "review_status": "draft",
+      "unanswerable_reason": "The corpus does not include SelectObjectContent, its SQL interface or request schema. Byte-range download instructions are not a substitute.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    },
+    {
+      "question_id": "core-115",
+      "query": "Give an end-to-end S3 Object Lock compliance-retention configuration and its exact request schema.",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The selected expiration note mentions Object Lock but does not include its retention configuration procedure or request schema.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "candidate",
+      "group_id": "bank-missing-object-lock-schema",
+      "review_status": "draft",
+      "unanswerable_reason": "The selected expiration note mentions Object Lock but does not include its retention configuration procedure or request schema.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    },
+    {
+      "question_id": "core-116",
+      "query": "Which exact SSE-C customer-key headers must I send for a PUT and subsequent GET?",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The selected encryption text discusses SSE-S3 and SSE-KMS, not the full SSE-C customer-key header requirements.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "candidate",
+      "group_id": "bank-missing-sse-c",
+      "review_status": "draft",
+      "unanswerable_reason": "The selected encryption text discusses SSE-S3 and SSE-KMS, not the full SSE-C customer-key header requirements.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    },
+    {
+      "question_id": "core-117",
+      "query": "List the actual current version IDs for objects in my production bucket now.",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "A documentation snapshot cannot inspect the bucket or enumerate its live version IDs. No account response or object inventory is supplied.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "candidate",
+      "group_id": "bank-missing-live-versions",
+      "review_status": "draft",
+      "unanswerable_reason": "A documentation snapshot cannot inspect the bucket or enumerate its live version IDs. No account response or object inventory is supplied.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    },
+    {
+      "question_id": "core-118",
+      "query": "Generate a working presigned download URL for my private object right now.",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The guide mentions asking the owner for a presigned URL, but the corpus has no authorized signing credentials or live object/request context from which to generate a working URL.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "candidate",
+      "group_id": "bank-owner-download",
+      "review_status": "draft",
+      "unanswerable_reason": "The guide mentions asking the owner for a presigned URL, but the corpus has no authorized signing credentials or live object/request context from which to generate a working URL.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    },
+    {
+      "question_id": "core-119",
+      "query": "Using only this subset, write a complete compilable Go SDK program for SSE-KMS multipart upload with all imports, request structures and retries.",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The selected passages describe operations and permissions but do not supply the Go SDK types, imports, complete request structures or retry implementation needed for that compilable program.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "candidate",
+      "group_id": "bank-missing-sdk-implementation",
+      "review_status": "draft",
+      "unanswerable_reason": "The selected passages describe operations and permissions but do not supply the Go SDK types, imports, complete request structures or retry implementation needed for that compilable program.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    },
+    {
+      "question_id": "core-120",
+      "query": "What part size will guarantee 1 GB/s upload throughput from my laptop to S3?",
+      "category": "unanswerable",
+      "permitted_guides": [
+        "s3-userguide",
+        "s3-api"
+      ],
+      "source_scope": "general-purpose",
+      "reference_answer": "The corpus describes parallel multipart benefits but provides no measurements of this laptop/network or basis for guaranteeing that throughput or selecting a guaranteed part size.",
+      "reference_passage_ids": [],
+      "expected_answerability": "unanswerable",
+      "split": "candidate",
+      "group_id": "bank-missing-network-measurements",
+      "review_status": "draft",
+      "unanswerable_reason": "The corpus describes parallel multipart benefits but provides no measurements of this laptop/network or basis for guaranteeing that throughput or selecting a guaranteed part size.",
+      "relevance_grades": {},
+      "required_evidence_groups": []
+    }
+  ],
+  "passages": [
+    {
+      "passage_id": "multipart-retry",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-overview",
+      "raw_section_sha256": "7fa9cc215744fbffb65603e8eb32cf501f448fcb74bdb9305f368802fa1ab197",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 53,
+      "text_end": 443,
+      "text_sha256": "7062ae9523477e7b64f349fa3a9f85deeb0cb55086ca43244fbb4b22dc2fe29a"
+    },
+    {
+      "passage_id": "multipart-reused-part",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-parts",
+      "raw_section_sha256": "c96e293562be17732484c06fbb2be0f6e0bdb3ad497bce9f4d9698c98e947794",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 151,
+      "text_end": 485,
+      "text_sha256": "453a55b1f961def458b1226bb8a5a7abfff6db354619c3e83b401fd4d28e5b84"
+    },
+    {
+      "passage_id": "multipart-combined-etag",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-completion",
+      "raw_section_sha256": "75b5613379a2e61968e132139a11886a15e0baa97a7bb23925428648956d4c17",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 360,
+      "text_end": 640,
+      "text_sha256": "d2c6a0188593c98200e91b4046421ce1b78047becd7b064547f686c5cf9c7738"
+    },
+    {
+      "passage_id": "listparts-pagination",
+      "source_id": "s3-api",
+      "section_id": "api-listparts-opening",
+      "raw_section_sha256": "5ec654699dd2a85b4341ff9f0d7e45d19e4f8718b41c763b9085954b7ee77ff9",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 277,
+      "text_end": 863,
+      "text_sha256": "82e6cf5722beb7fcefdd57d7ea418356a4eb9ca76cdf2adf51a9917fe3a53b2d"
+    },
+    {
+      "passage_id": "abort-inflight-parts",
+      "source_id": "s3-api",
+      "section_id": "api-abortmultipartupload-opening",
+      "raw_section_sha256": "a1cbe70db3bca0d7856cba3a87d5f2a00a4f93ed7ba66494af5c964e43fa4c34",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 40,
+      "text_end": 673,
+      "text_sha256": "30a28e454f961c1a4bfc783724bd843d8899f15f077e05031d9164d8e6fd1fcd"
+    },
+    {
+      "passage_id": "complete-embedded-error",
+      "source_id": "s3-api",
+      "section_id": "api-completemultipartupload-opening",
+      "raw_section_sha256": "bc801e3002e563a8de095affaaa59ecb8058b560c852dc279aec4e61d5a3d020",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 844,
+      "text_end": 1526,
+      "text_sha256": "6917c3db1b5fc1ea21e48735aca1b0ed2a9fd3d054ba37dd08f723f2d84a3c3b"
+    },
+    {
+      "passage_id": "download-single-range",
+      "source_id": "s3-userguide",
+      "section_id": "ug-download-range",
+      "raw_section_sha256": "b1c3bc55421e61ddfa325daec08d704c027f65f70b6f5c65f5b2af741fc22517",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 882,
+      "text_end": 967,
+      "text_sha256": "e12a30066e0736472c4f6397e70ff4e796db72029728d2baeee2036db84e3b24"
+    },
+    {
+      "passage_id": "upload-checksum-mismatch",
+      "source_id": "s3-userguide",
+      "section_id": "ug-object-checksums",
+      "raw_section_sha256": "730f4d7e866ed8a694e08aa1b2c8a6117cfed42f43405b27d55be9c2e392ba16",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 628,
+      "text_end": 901,
+      "text_sha256": "64a45bae21fdf6f067706a16bf664b16d030d66c7597ff6a23a973ada10b449a"
+    },
+    {
+      "passage_id": "putobject-metadata",
+      "source_id": "s3-api",
+      "section_id": "api-putobject-opening",
+      "raw_section_sha256": "355a1edb2d2da6f87a3c44820a72ac17ce525a7a8fbcee86dc215d6c2bae2008",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 64,
+      "text_end": 364,
+      "text_sha256": "677ba88330e9f598d3e5ba6f2ce7fc4c254f6efb0c60e9d73334682c676fd7e0"
+    },
+    {
+      "passage_id": "headobject-missing-key",
+      "source_id": "s3-api",
+      "section_id": "api-headobject-opening",
+      "raw_section_sha256": "24add3ca6ff9cce0614c9cf171dbb2938659064140e419dfdffce8a3b5f3a9f1",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1193,
+      "text_end": 1555,
+      "text_sha256": "abf2afe79f1b15fd34d22e2f585422e4a097adb62722a70a02884377fdc1ed00"
+    },
+    {
+      "passage_id": "lifecycle-bucket-deny",
+      "source_id": "s3-userguide",
+      "section_id": "ug-bucket-policies",
+      "raw_section_sha256": "42543dedb0a2b465fbf4b29155e164c7d9556c5a8bcb5edf7a13ff15678b124e",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1538,
+      "text_end": 1766,
+      "text_sha256": "d6ac50c57c0fa5b76699100b7e2db32c7e265e8afa45cc405c780a434a9c22a1"
+    },
+    {
+      "passage_id": "public-access-restriction",
+      "source_id": "s3-userguide",
+      "section_id": "ug-public-access-overview",
+      "raw_section_sha256": "cba574b1bf1e85345a578b957d1db7ac109df0b46632ad80fcc1ca1cc8296a27",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1259,
+      "text_end": 1655,
+      "text_sha256": "47f7af37401aada96723db92f68b3e214461ecda8a6b972d68b8115463e0461e"
+    },
+    {
+      "passage_id": "versioning-tag-change",
+      "source_id": "s3-userguide",
+      "section_id": "ug-versioning-workflows",
+      "raw_section_sha256": "b83924dffe89315df73db51b2e218eefbcd6a0c9cb575a03a277ffc8ee80ee41",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 2016,
+      "text_end": 2342,
+      "text_sha256": "51b6584d577e691d990dd40975d1e94b03d0a8a64998ab958248a2678e9ac196"
+    },
+    {
+      "passage_id": "delete-marker-current-get",
+      "source_id": "s3-userguide",
+      "section_id": "ug-delete-markers",
+      "raw_section_sha256": "c11ebc190ac1aa11ac5508e1b738f9946e2184f4e0671e6fdc13e7242b599bbb",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 2264,
+      "text_end": 2489,
+      "text_sha256": "5d2140c78dd6aa7b115545531af9809872acd5278de4e181da3c55ecddf12840"
+    },
+    {
+      "passage_id": "delete-marker-version-get",
+      "source_id": "s3-userguide",
+      "section_id": "ug-delete-markers",
+      "raw_section_sha256": "c11ebc190ac1aa11ac5508e1b738f9946e2184f4e0671e6fdc13e7242b599bbb",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 2490,
+      "text_end": 2828,
+      "text_sha256": "e85e0bf5e0d701107dcdea0e7ccce80b3cc473c0154913cc3381d1a5ef2b77fd"
+    },
+    {
+      "passage_id": "delete-marker-exact-delete",
+      "source_id": "s3-userguide",
+      "section_id": "ug-delete-marker-recovery",
+      "raw_section_sha256": "c83bcace3775884535cc921b252e3d6c22f003725edd06bf7eb60cd6ed1633d2",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 869,
+      "text_end": 1077,
+      "text_sha256": "4014cf4bb9bbb7d3a90843a28f0804551232f7a8fe04808edbeeb06246fe0b1e"
+    },
+    {
+      "passage_id": "delete-marker-key-only-delete",
+      "source_id": "s3-userguide",
+      "section_id": "ug-delete-marker-recovery",
+      "raw_section_sha256": "c83bcace3775884535cc921b252e3d6c22f003725edd06bf7eb60cd6ed1633d2",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1219,
+      "text_end": 1440,
+      "text_sha256": "76ff205d20356debd5d54c6cc52ff913621a9059e5e2b85962c8e8fc11b5c03e"
+    },
+    {
+      "passage_id": "expiration-current-only",
+      "source_id": "s3-userguide",
+      "section_id": "ug-lifecycle-expiration",
+      "raw_section_sha256": "15a15f6d69afdaf5a90259434e30bd58819735411c139d44d986014bf26538d3",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1154,
+      "text_end": 1265,
+      "text_sha256": "08c909f8c65e2a0ed7c82b708820a32591d92072905b791693c69895e4ba46a4"
+    },
+    {
+      "passage_id": "expiration-noncurrent-action",
+      "source_id": "s3-userguide",
+      "section_id": "ug-lifecycle-expiration",
+      "raw_section_sha256": "15a15f6d69afdaf5a90259434e30bd58819735411c139d44d986014bf26538d3",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1860,
+      "text_end": 2034,
+      "text_sha256": "2c9fe9a505f9f2bdb337eb60aa676540647c12f86d7db3ce10e233b2c05dabf3"
+    },
+    {
+      "passage_id": "abort-lifecycle-filter",
+      "source_id": "s3-userguide",
+      "section_id": "ug-lifecycle-abort-multipart",
+      "raw_section_sha256": "cde55dc29c9b359ba56e7cd6e2476002bd47a69b972a4162a5722780d11d73a2",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 747,
+      "text_end": 859,
+      "text_sha256": "549ea0574f2263bd42e7f4a256b4e637a1cdefecf7cebc00fb6f1fc2ab477ba7"
+    },
+    {
+      "passage_id": "multipart-record-etags",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-parts",
+      "raw_section_sha256": "c96e293562be17732484c06fbb2be0f6e0bdb3ad497bce9f4d9698c98e947794",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 486,
+      "text_end": 754,
+      "text_sha256": "1b461575d2c3edea0fa765b9a8c5a7a60c200e98d057bf8cde45dcf4a1813a3d"
+    },
+    {
+      "passage_id": "multipart-listing-verification",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-listings",
+      "raw_section_sha256": "de0a65354dd6899348b699486f7d04821261eacca779472297c6ef70aecfbe4f",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1001,
+      "text_end": 1286,
+      "text_sha256": "677d264e7055e0509b99cad767a5f8e4c12b5e6c7b9e53b8fc8a226307f365fe"
+    },
+    {
+      "passage_id": "bank-console-limit",
+      "source_id": "s3-userguide",
+      "section_id": "ug-upload-overview",
+      "raw_section_sha256": "ba8bed7d6d06f994f31c3b6e51fcf3503f8ad7167ab08b2cbf9aa50cf9e7d541",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 496,
+      "text_end": 700,
+      "text_sha256": "57a644c2a0e73abb7c62817db9188f91b822bc022da10497c198286bd6afaa91"
+    },
+    {
+      "passage_id": "bank-multipart-size",
+      "source_id": "s3-userguide",
+      "section_id": "ug-upload-overview",
+      "raw_section_sha256": "ba8bed7d6d06f994f31c3b6e51fcf3503f8ad7167ab08b2cbf9aa50cf9e7d541",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1444,
+      "text_end": 1543,
+      "text_sha256": "03029efb74ece0e0ca7a4f834154490ae1fe8b309f9af7f1e7b817a9a4e3375c"
+    },
+    {
+      "passage_id": "bank-single-put",
+      "source_id": "s3-userguide",
+      "section_id": "ug-upload-overview",
+      "raw_section_sha256": "ba8bed7d6d06f994f31c3b6e51fcf3503f8ad7167ab08b2cbf9aa50cf9e7d541",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1151,
+      "text_end": 1230,
+      "text_sha256": "be521c3db1f6360d1c458b3366294c0637f91f704832721dd57d5c8b64cd289d"
+    },
+    {
+      "passage_id": "bank-upload-encryption",
+      "source_id": "s3-userguide",
+      "section_id": "ug-upload-overview",
+      "raw_section_sha256": "ba8bed7d6d06f994f31c3b6e51fcf3503f8ad7167ab08b2cbf9aa50cf9e7d541",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1911,
+      "text_end": 2053,
+      "text_sha256": "ad208baf5352e7716a0a389472b57b85b43f1d0a81c0215b89038efa8d67e55d"
+    },
+    {
+      "passage_id": "bank-multipart-threshold",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-overview",
+      "raw_section_sha256": "7fa9cc215744fbffb65603e8eb32cf501f448fcb74bdb9305f368802fa1ab197",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 444,
+      "text_end": 592,
+      "text_sha256": "fcccdfae387e01a8abf0a2dfaf5398ca2f627b5c57b36b4983a5fe16fe8a74cc"
+    },
+    {
+      "passage_id": "bank-multipart-no-expiry",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-overview",
+      "raw_section_sha256": "7fa9cc215744fbffb65603e8eb32cf501f448fcb74bdb9305f368802fa1ab197",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 869,
+      "text_end": 1059,
+      "text_sha256": "004e77d67fbca2a3647b3405c838cfe805cf184b78910fcfdae1f20a0c4ffe93"
+    },
+    {
+      "passage_id": "bank-initiate-id",
+      "source_id": "s3-api",
+      "section_id": "api-createmultipartupload-opening",
+      "raw_section_sha256": "6ab802c9861277d4a33ab9c318150592f6199d2c5f499cb0c4027ce32ac82ac3",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 41,
+      "text_end": 398,
+      "text_sha256": "cb1dba2c4ce4c472def6fc4d6ba4762e05324dbc1e35805651bdb4906afc1ce2"
+    },
+    {
+      "passage_id": "bank-initiate-metadata",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-initiation",
+      "raw_section_sha256": "cec9074a8f97e4310487960e625bc0b326c5ab628f82c9e71e3722932fd21f0b",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 617,
+      "text_end": 1029,
+      "text_sha256": "0f4f40b004c33ca86188f3ae8bcc7c745be21628830f09f7c51695ed99e6dfa7"
+    },
+    {
+      "passage_id": "bank-part-numbering",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-parts",
+      "raw_section_sha256": "c96e293562be17732484c06fbb2be0f6e0bdb3ad497bce9f4d9698c98e947794",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 13,
+      "text_end": 485,
+      "text_sha256": "17836412d34c306f6380639f401c5139ba96a0ef661d9af922d89989f2a72109"
+    },
+    {
+      "passage_id": "bank-part-assembly",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-completion",
+      "raw_section_sha256": "75b5613379a2e61968e132139a11886a15e0baa97a7bb23925428648956d4c17",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 28,
+      "text_end": 359,
+      "text_sha256": "82c4c5fa07b0b89ff5e221908c040e06eabd27fc8ea0cde5f4a03f60a5eb90b7"
+    },
+    {
+      "passage_id": "bank-part-completion-api",
+      "source_id": "s3-api",
+      "section_id": "api-completemultipartupload-opening",
+      "raw_section_sha256": "bc801e3002e563a8de095affaaa59ecb8058b560c852dc279aec4e61d5a3d020",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 113,
+      "text_end": 843,
+      "text_sha256": "c155ac859e31da2db38f688587bee5bcf077d64ef5d8236b45d39d125f3353be"
+    },
+    {
+      "passage_id": "bank-listparts-intro",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-listings",
+      "raw_section_sha256": "de0a65354dd6899348b699486f7d04821261eacca779472297c6ef70aecfbe4f",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 26,
+      "text_end": 1000,
+      "text_sha256": "2dd9bf10f31c7f4be57a6c7fa527d227c1706a52720a936f60f2e423385b6573"
+    },
+    {
+      "passage_id": "bank-listparts-inflight",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-listings",
+      "raw_section_sha256": "de0a65354dd6899348b699486f7d04821261eacca779472297c6ef70aecfbe4f",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 498,
+      "text_end": 589,
+      "text_sha256": "63ed5a3ee1bc0bee7e601e667282582b2c8b5e6fe1ab5dd079356a850fe55a14"
+    },
+    {
+      "passage_id": "bank-checksum-algorithms",
+      "source_id": "s3-userguide",
+      "section_id": "ug-object-checksums",
+      "raw_section_sha256": "730f4d7e866ed8a694e08aa1b2c8a6117cfed42f43405b27d55be9c2e392ba16",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 938,
+      "text_end": 1232,
+      "text_sha256": "9b68871a2be2370bb73c9b142edd71a17f7c34d64e42b914698e08ea153c87d9"
+    },
+    {
+      "passage_id": "bank-checksum-copy",
+      "source_id": "s3-userguide",
+      "section_id": "ug-object-checksums",
+      "raw_section_sha256": "730f4d7e866ed8a694e08aa1b2c8a6117cfed42f43405b27d55be9c2e392ba16",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 2140,
+      "text_end": 2604,
+      "text_sha256": "f6a595b9d0549ee8d0ea9d3429595de8d88fede3877a95a0ca2ac7d205f7f6fa"
+    },
+    {
+      "passage_id": "bank-checksum-compare",
+      "source_id": "s3-userguide",
+      "section_id": "ug-object-checksums",
+      "raw_section_sha256": "730f4d7e866ed8a694e08aa1b2c8a6117cfed42f43405b27d55be9c2e392ba16",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 2917,
+      "text_end": 3079,
+      "text_sha256": "226f6a065342508a6575f923f02408e566af57c3ce681714ee9d82a0b7c3985d"
+    },
+    {
+      "passage_id": "bank-multipart-checksum-read",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-checksums",
+      "raw_section_sha256": "326fabf06e7d54ee2d6f379390ed0afa5a17630cc41e31537d0129162a4f26c3",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 494,
+      "text_end": 867,
+      "text_sha256": "5055d788259008ac022dc2b5a11378d49581e129434d8ad9f246ce8f269f5faf"
+    },
+    {
+      "passage_id": "bank-checksum-sequence",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-checksums",
+      "raw_section_sha256": "326fabf06e7d54ee2d6f379390ed0afa5a17630cc41e31537d0129162a4f26c3",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 879,
+      "text_end": 1178,
+      "text_sha256": "a4cd279a8f3d6cfdd7b2e178bb09c311a06cf56aa62ffa89fa923d8f5a53db71"
+    },
+    {
+      "passage_id": "bank-archived-download",
+      "source_id": "s3-userguide",
+      "section_id": "ug-download-overview",
+      "raw_section_sha256": "9122e3de0c537221d8bf074584fb0ad1cd544af44f718b107aedc8f2c01f281f",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 204,
+      "text_end": 455,
+      "text_sha256": "450a9d25c22a9fc3226ec896d2f0864cc1f4534b77e37d83c1d554b3730e2e0b"
+    },
+    {
+      "passage_id": "bank-owner-download",
+      "source_id": "s3-userguide",
+      "section_id": "ug-download-overview",
+      "raw_section_sha256": "9122e3de0c537221d8bf074584fb0ad1cd544af44f718b107aedc8f2c01f281f",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1147,
+      "text_end": 1384,
+      "text_sha256": "e03779509f4bd9ac91eb9ebcf567a3383e6c5c047e783577a9cdbe0f76702a45"
+    },
+    {
+      "passage_id": "bank-range-example",
+      "source_id": "s3-userguide",
+      "section_id": "ug-download-range",
+      "raw_section_sha256": "b1c3bc55421e61ddfa325daec08d704c027f65f70b6f5c65f5b2af741fc22517",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 370,
+      "text_end": 702,
+      "text_sha256": "0696da59fa3dd5100bbce7c003e247b6ddf967e3523da9265be6f138d4917205"
+    },
+    {
+      "passage_id": "bank-bpa-levels",
+      "source_id": "s3-userguide",
+      "section_id": "ug-public-access-overview",
+      "raw_section_sha256": "cba574b1bf1e85345a578b957d1db7ac109df0b46632ad80fcc1ca1cc8296a27",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 3169,
+      "text_end": 3577,
+      "text_sha256": "75f45a260166b6df02cb48e060d4d7c5a3bbfbf3b7c9e7a267fb37a6a45f33a8"
+    },
+    {
+      "passage_id": "bank-block-acls",
+      "source_id": "s3-userguide",
+      "section_id": "ug-public-access-settings",
+      "raw_section_sha256": "55bb45adb63b8fded6d20558c42ee1c76385e70b9e6d43eb64121ba6fca38b49",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 478,
+      "text_end": 1201,
+      "text_sha256": "9d546df40e25a11847f6133812304fc8fcabcaf9ddf3d11fc68097ca8ddc6811"
+    },
+    {
+      "passage_id": "bank-ignore-acls",
+      "source_id": "s3-userguide",
+      "section_id": "ug-public-access-settings",
+      "raw_section_sha256": "55bb45adb63b8fded6d20558c42ee1c76385e70b9e6d43eb64121ba6fca38b49",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1591,
+      "text_end": 2078,
+      "text_sha256": "44eac14aa5db23539abbbb0929abd036470193dc6eaf65adad41f60f9f795ba9"
+    },
+    {
+      "passage_id": "bank-block-policy",
+      "source_id": "s3-userguide",
+      "section_id": "ug-public-access-settings",
+      "raw_section_sha256": "55bb45adb63b8fded6d20558c42ee1c76385e70b9e6d43eb64121ba6fca38b49",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 2468,
+      "text_end": 3349,
+      "text_sha256": "8c8c7c287ce53531fbe72ec61957fc93b627bc59c5069e45e2e7c4300dc265fa"
+    },
+    {
+      "passage_id": "bank-restrict-public",
+      "source_id": "s3-userguide",
+      "section_id": "ug-public-access-settings",
+      "raw_section_sha256": "55bb45adb63b8fded6d20558c42ee1c76385e70b9e6d43eb64121ba6fca38b49",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 3892,
+      "text_end": 4575,
+      "text_sha256": "d733ed0c8d61bc6797bd78f03aa21637ee6b3382722567437a519ad8528a7933"
+    },
+    {
+      "passage_id": "bank-bpa-removal",
+      "source_id": "s3-userguide",
+      "section_id": "ug-public-access-settings",
+      "raw_section_sha256": "55bb45adb63b8fded6d20558c42ee1c76385e70b9e6d43eb64121ba6fca38b49",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 5026,
+      "text_end": 5230,
+      "text_sha256": "8416dca619a423254d371223239b409d81d8f500c2fbbc68d62f9127af8d8b6e"
+    },
+    {
+      "passage_id": "bank-bucket-policy",
+      "source_id": "s3-userguide",
+      "section_id": "ug-bucket-policies",
+      "raw_section_sha256": "42543dedb0a2b465fbf4b29155e164c7d9556c5a8bcb5edf7a13ff15678b124e",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 30,
+      "text_end": 421,
+      "text_sha256": "ab996254859f81e90ec563d698c9ed7759e1bd3a6854b9ecbac4ef6d592c83b9"
+    },
+    {
+      "passage_id": "bank-object-ownership",
+      "source_id": "s3-userguide",
+      "section_id": "ug-bucket-policies",
+      "raw_section_sha256": "42543dedb0a2b465fbf4b29155e164c7d9556c5a8bcb5edf7a13ff15678b124e",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 422,
+      "text_end": 812,
+      "text_sha256": "0e3fd0a118c3c3609e98e208c0746848b0d40958add039eb981a89b5f16d6243"
+    },
+    {
+      "passage_id": "bank-version-id-shape",
+      "source_id": "s3-userguide",
+      "section_id": "ug-version-identifiers",
+      "raw_section_sha256": "3fcab4ab96fd0fd77969f01feab53b58e1eff620b1c62496d0ef84dc2f157328",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1078,
+      "text_end": 1248,
+      "text_sha256": "694d2ead5021b1be22283f168d07762c956b9370f7013ff31da6fb480ae4cab5"
+    },
+    {
+      "passage_id": "bank-existing-null",
+      "source_id": "s3-userguide",
+      "section_id": "ug-version-identifiers",
+      "raw_section_sha256": "3fcab4ab96fd0fd77969f01feab53b58e1eff620b1c62496d0ef84dc2f157328",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 744,
+      "text_end": 1077,
+      "text_sha256": "f4b3b33d556aa10a1f1cb9131171b2c38e0cf3d280430f3d785ec0ce16cc42b5"
+    },
+    {
+      "passage_id": "bank-version-overwrite",
+      "source_id": "s3-userguide",
+      "section_id": "ug-versioning-workflows",
+      "raw_section_sha256": "b83924dffe89315df73db51b2e218eefbcd6a0c9cb575a03a277ffc8ee80ee41",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 21,
+      "text_end": 586,
+      "text_sha256": "67661627f2f112b65a440dc8613875c8d5b02fb23f34b94befcefe329c778367"
+    },
+    {
+      "passage_id": "bank-version-storage",
+      "source_id": "s3-userguide",
+      "section_id": "ug-how-versioning-works",
+      "raw_section_sha256": "9b4d744458b15d209d8a19afd36fbca7f5ca261eb9203aa68a7933bb936af7cd",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 741,
+      "text_end": 1013,
+      "text_sha256": "d5639286cdddbefd336aa3326bd185d0bd1dfc0550036eba4621f296d3f530e7"
+    },
+    {
+      "passage_id": "bank-marker-shape",
+      "source_id": "s3-userguide",
+      "section_id": "ug-delete-markers",
+      "raw_section_sha256": "c11ebc190ac1aa11ac5508e1b738f9946e2184f4e0671e6fdc13e7242b599bbb",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 589,
+      "text_end": 1100,
+      "text_sha256": "03b75d45ae8a9f35d704c5ce526dbdeb7cb0809e7294fffd1d74a4fa55071eb7"
+    },
+    {
+      "passage_id": "bank-marker-storage",
+      "source_id": "s3-userguide",
+      "section_id": "ug-delete-markers",
+      "raw_section_sha256": "c11ebc190ac1aa11ac5508e1b738f9946e2184f4e0671e6fdc13e7242b599bbb",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1101,
+      "text_end": 1478,
+      "text_sha256": "7ce517ac74da7aabd82598391e8eb70d4604186a6863275c79f38c4382dc268f"
+    },
+    {
+      "passage_id": "bank-version-delete",
+      "source_id": "s3-userguide",
+      "section_id": "ug-versioning-workflows",
+      "raw_section_sha256": "b83924dffe89315df73db51b2e218eefbcd6a0c9cb575a03a277ffc8ee80ee41",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1313,
+      "text_end": 1638,
+      "text_sha256": "7a4654ea5a48f91edb3d4417b82a9c3844b6209d1c573dd67ad0b89e05522d43"
+    },
+    {
+      "passage_id": "bank-version-read",
+      "source_id": "s3-userguide",
+      "section_id": "ug-versioning-workflows",
+      "raw_section_sha256": "b83924dffe89315df73db51b2e218eefbcd6a0c9cb575a03a277ffc8ee80ee41",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 992,
+      "text_end": 1224,
+      "text_sha256": "61b091299d07111906115af61aecf55046f0328c7001626488edf75d164f180b"
+    },
+    {
+      "passage_id": "bank-versions-permission",
+      "source_id": "s3-api",
+      "section_id": "api-listobjectversions-opening",
+      "raw_section_sha256": "56e34ca301d95a3e61ed31e2e40fc0115d819ffe7ba77ef1261a751e603ff94d",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 291,
+      "text_end": 416,
+      "text_sha256": "28e2a406debd624bd8e709425a7e414ef3f61449dc1ed33415999b246ef97b82"
+    },
+    {
+      "passage_id": "bank-get-key",
+      "source_id": "s3-api",
+      "section_id": "api-getobject-opening",
+      "raw_section_sha256": "9fa950eaee0e2d76be1e0aca8fb58b9d87a9dd556f5bd749ee13bee8baef0f6e",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 29,
+      "text_end": 132,
+      "text_sha256": "1e38bbdabb2ede3f009d9a5e00403b8c4e94d75a89833d1eb380eb421206d843"
+    },
+    {
+      "passage_id": "bank-head-shape",
+      "source_id": "s3-api",
+      "section_id": "api-headobject-opening",
+      "raw_section_sha256": "24add3ca6ff9cce0614c9cf171dbb2938659064140e419dfdffce8a3b5f3a9f1",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 30,
+      "text_end": 635,
+      "text_sha256": "048aca6759dadc0442911f45a8a948393f07a24d2865a4cc4379858d02eb8b69"
+    },
+    {
+      "passage_id": "bank-head-headers",
+      "source_id": "s3-api",
+      "section_id": "api-headobject-opening",
+      "raw_section_sha256": "24add3ca6ff9cce0614c9cf171dbb2938659064140e419dfdffce8a3b5f3a9f1",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 636,
+      "text_end": 730,
+      "text_sha256": "3645405e8cccc31adbacf4993faa3faa5211d55fa5ebfea13e7bc993732943ee"
+    },
+    {
+      "passage_id": "bank-head-permission",
+      "source_id": "s3-api",
+      "section_id": "api-headobject-opening",
+      "raw_section_sha256": "24add3ca6ff9cce0614c9cf171dbb2938659064140e419dfdffce8a3b5f3a9f1",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 745,
+      "text_end": 837,
+      "text_sha256": "644660ba20e0b54cef04b733f309a6fd966e23cae7f7195125bc5e66858ced6f"
+    },
+    {
+      "passage_id": "bank-private-default",
+      "source_id": "s3-userguide",
+      "section_id": "ug-access-overview",
+      "raw_section_sha256": "167863329dc135c8545667528261e29b60d27ad774b9119b055359a33e8bdef9",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 440,
+      "text_end": 815,
+      "text_sha256": "73bfd8e840d706416ba97563729f95c4b3fb600687b9c0a211290ee678e5fc7f"
+    },
+    {
+      "passage_id": "bank-bulk-delete",
+      "source_id": "s3-api",
+      "section_id": "api-deleteobjects-opening",
+      "raw_section_sha256": "216279e0271a76940401f6c1617ad16c40c9486e39274b4f00b497f08941a13d",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 33,
+      "text_end": 774,
+      "text_sha256": "291e1417b83f902c09109b47823a44a9515b77d17d4074a58838d65531f01976"
+    },
+    {
+      "passage_id": "bank-rule-status",
+      "source_id": "s3-userguide",
+      "section_id": "ug-lifecycle-elements",
+      "raw_section_sha256": "db7990da5a28b46466d6ac7ed6dc68250a7c26081aad88b422018cbb8aeeea48",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 490,
+      "text_end": 681,
+      "text_sha256": "af49b5bab31c5bb37bac38dd2d09821488c333d04f17e1cefe8d429e0f2729ab"
+    },
+    {
+      "passage_id": "bank-put-lifecycle-replace",
+      "source_id": "s3-api",
+      "section_id": "api-putbucketlifecycleconfiguration-opening",
+      "raw_section_sha256": "38e6f7531e4b8200c0c72c04684ea8611bcd78d1c78bb8a11c86e6ab5be99975",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 110,
+      "text_end": 396,
+      "text_sha256": "20d5ba3cf665ade32b2c441bf2a661058cf53646e029f415ee5b52704036c5b0"
+    },
+    {
+      "passage_id": "bank-put-lifecycle-permission",
+      "source_id": "s3-api",
+      "section_id": "api-putbucketlifecycleconfiguration-opening",
+      "raw_section_sha256": "38e6f7531e4b8200c0c72c04684ea8611bcd78d1c78bb8a11c86e6ab5be99975",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 2384,
+      "text_end": 2785,
+      "text_sha256": "3256e004d81fda3545520dced72ea671945008b9d6cc50d26dbf0dfd40de5733"
+    },
+    {
+      "passage_id": "bank-get-lifecycle-read",
+      "source_id": "s3-api",
+      "section_id": "api-getbucketlifecycleconfiguration-opening",
+      "raw_section_sha256": "5bb8624fa816f6ac1692a8eabbb1b9f2da63d447428aee27bdb484f96007d4fb",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 836,
+      "text_end": 1186,
+      "text_sha256": "2772d7755560bdff644deb5154b6f85399309b08fd80750e2e1287afbc8b13cf"
+    },
+    {
+      "passage_id": "bank-get-lifecycle-missing",
+      "source_id": "s3-api",
+      "section_id": "api-getbucketlifecycleconfiguration-opening",
+      "raw_section_sha256": "5bb8624fa816f6ac1692a8eabbb1b9f2da63d447428aee27bdb484f96007d4fb",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1345,
+      "text_end": 1578,
+      "text_sha256": "6de5ca35649ce2f6128a31c1a334fade937c3a00f7e7aca82d24bd54d761d5b4"
+    },
+    {
+      "passage_id": "bank-abort-lifecycle-days",
+      "source_id": "s3-userguide",
+      "section_id": "ug-lifecycle-abort-multipart",
+      "raw_section_sha256": "cde55dc29c9b359ba56e7cd6e2476002bd47a69b972a4162a5722780d11d73a2",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 252,
+      "text_end": 741,
+      "text_sha256": "10cfd81ed92000ac868430dc7df97cafb23e1aff29e61c6f555b2ec11a98030b"
+    },
+    {
+      "passage_id": "bank-abort-no-resume",
+      "source_id": "s3-api",
+      "section_id": "api-abortmultipartupload-opening",
+      "raw_section_sha256": "a1cbe70db3bca0d7856cba3a87d5f2a00a4f93ed7ba66494af5c964e43fa4c34",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 40,
+      "text_end": 245,
+      "text_sha256": "65258450f897ef460273876546cb4c5b1c06fe1b51646f9e18d56393946b5d5f"
+    },
+    {
+      "passage_id": "bank-completion-heartbeat",
+      "source_id": "s3-api",
+      "section_id": "api-completemultipartupload-opening",
+      "raw_section_sha256": "bc801e3002e563a8de095affaaa59ecb8058b560c852dc279aec4e61d5a3d020",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 844,
+      "text_end": 1174,
+      "text_sha256": "2defbf2201fc9527137db12eff03dba76385d303c86f72a0f857a1832b3482c3"
+    },
+    {
+      "passage_id": "bank-version-503",
+      "source_id": "s3-userguide",
+      "section_id": "ug-versioning-workflows",
+      "raw_section_sha256": "b83924dffe89315df73db51b2e218eefbcd6a0c9cb575a03a277ffc8ee80ee41",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 2353,
+      "text_end": 2635,
+      "text_sha256": "a5e5da6762a1a44aa0a37a0f1ab818010e3b7bddc6cd522d5fca9877a7ba95f9"
+    },
+    {
+      "passage_id": "bank-expiration-pending",
+      "source_id": "s3-userguide",
+      "section_id": "ug-lifecycle-expiration",
+      "raw_section_sha256": "15a15f6d69afdaf5a90259434e30bd58819735411c139d44d986014bf26538d3",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 2900,
+      "text_end": 3027,
+      "text_sha256": "fc6d5d361fe5fc3774aedbce8166a89a0b5987216923305de4e351bf44ea5e73"
+    },
+    {
+      "passage_id": "bank-expiration-filter",
+      "source_id": "s3-userguide",
+      "section_id": "ug-lifecycle-expiration",
+      "raw_section_sha256": "15a15f6d69afdaf5a90259434e30bd58819735411c139d44d986014bf26538d3",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 2129,
+      "text_end": 2629,
+      "text_sha256": "0aeff27efb8d383cf8a12955de275c2db55179319190343b8396da6d6f5b0e5e"
+    },
+    {
+      "passage_id": "bank-expiration-lock",
+      "source_id": "s3-userguide",
+      "section_id": "ug-lifecycle-expiration",
+      "raw_section_sha256": "15a15f6d69afdaf5a90259434e30bd58819735411c139d44d986014bf26538d3",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 2778,
+      "text_end": 2897,
+      "text_sha256": "55d62e742f61478698cf05cda1649d8f94a4c45030a3c177f35ccdf0b3259943"
+    },
+    {
+      "passage_id": "bank-expiration-priority",
+      "source_id": "s3-userguide",
+      "section_id": "ug-lifecycle-expiration",
+      "raw_section_sha256": "15a15f6d69afdaf5a90259434e30bd58819735411c139d44d986014bf26538d3",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 3123,
+      "text_end": 3438,
+      "text_sha256": "6f9e4bde2dd3bfc8fc1211587fb72119893d0d9d5c51ac8159519c4251a2f096"
+    },
+    {
+      "passage_id": "bank-lifecycle-actions",
+      "source_id": "s3-userguide",
+      "section_id": "ug-lifecycle-overview",
+      "raw_section_sha256": "1a6137f3c330caf6c0a59672c8068692eb6f5f46fb10c18e051340ee2d4b53e9",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 342,
+      "text_end": 1433,
+      "text_sha256": "19276d451a8c509750bca34bfea48ec8d0abc6c309473adfbd4c907ceefb54b8"
+    },
+    {
+      "passage_id": "bank-versioning-states",
+      "source_id": "s3-api",
+      "section_id": "api-putbucketversioning-opening",
+      "raw_section_sha256": "7916da7febaf49d7372734b549b3107bc86db63007d36c8fd998f533cbf37055",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 429,
+      "text_end": 892,
+      "text_sha256": "7b730d49f63086275eb6aa0543be62efe4aaadebb1cc80cdfed6f9e1a1e44670"
+    },
+    {
+      "passage_id": "bank-delete-options",
+      "source_id": "s3-userguide",
+      "section_id": "ug-delete-versioned-objects",
+      "raw_section_sha256": "472c477d2d242cc84260ffd88be63a834f8f9153022fe7982272f9022b2425d6",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 254,
+      "text_end": 1077,
+      "text_sha256": "5a74d774ceaf1d032c91d0b5536283ad5b83a3afcfa6b1fc61f9f9c24bfe32d7"
+    },
+    {
+      "passage_id": "bank-uploadpart-copy",
+      "source_id": "s3-api",
+      "section_id": "api-uploadpart-opening",
+      "raw_section_sha256": "ff8965c0334f28d993f6922d5cf4307323a5ba74475f1d35a7e1c38fced929b0",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 73,
+      "text_end": 351,
+      "text_sha256": "c8bed5b14abdbfb22e164f950d6335af14c5bd3ebad3035a2771c828d50dd230"
+    },
+    {
+      "passage_id": "bank-expired-marker",
+      "source_id": "s3-userguide",
+      "section_id": "ug-delete-marker-recovery",
+      "raw_section_sha256": "c83bcace3775884535cc921b252e3d6c22f003725edd06bf7eb60cd6ed1633d2",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 95,
+      "text_end": 391,
+      "text_sha256": "1b016e9bac938a496405f71ac0e70bea0c90e037852ca3adc08c1ac63a793bd6"
+    },
+    {
+      "passage_id": "bank-marker-list",
+      "source_id": "s3-userguide",
+      "section_id": "ug-delete-markers",
+      "raw_section_sha256": "c11ebc190ac1aa11ac5508e1b738f9946e2184f4e0671e6fdc13e7242b599bbb",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 3647,
+      "text_end": 3922,
+      "text_sha256": "a102f55fbcd5186f4ae105b6a79efd8c5f91b8a4698bf25f54575610029e1708"
+    },
+    {
+      "passage_id": "bank-mfa-delete",
+      "source_id": "s3-api",
+      "section_id": "api-deleteobject-description",
+      "raw_section_sha256": "16b55353b22274f4ce0ccc7b04253fc691e4088cfdb4a865fb7a6be9f7f9e644",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 440,
+      "text_end": 680,
+      "text_sha256": "c6a7086192d910dce5d14d4b9761858355742764180d0457d6cdcd18ab09bf0b"
+    },
+    {
+      "passage_id": "bank-enable-noncurrent",
+      "source_id": "s3-api",
+      "section_id": "api-putbucketversioning-opening",
+      "raw_section_sha256": "7916da7febaf49d7372734b549b3107bc86db63007d36c8fd998f533cbf37055",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 1215,
+      "text_end": 1573,
+      "text_sha256": "73b4e8e99a935d348d3a316f0c892b9beac3c6e6166377ac060f2a1f463e902f"
+    },
+    {
+      "passage_id": "bank-kms-multipart",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-permissions",
+      "raw_section_sha256": "50023a1fecadfc440e024a96a907d6a770e4aceaac98627aafcf0dacaefcbafe",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 3839,
+      "text_end": 4729,
+      "text_sha256": "b6c7cb8951d5f19098b35786516f569aaeb08fdb37ee23a2db56753604598480"
+    },
+    {
+      "passage_id": "bank-listparts-permission",
+      "source_id": "s3-userguide",
+      "section_id": "ug-multipart-permissions",
+      "raw_section_sha256": "50023a1fecadfc440e024a96a907d6a770e4aceaac98627aafcf0dacaefcbafe",
+      "cleaning_version": "pdf-headers-v1",
+      "text_start": 2820,
+      "text_end": 2937,
+      "text_sha256": "319b2afb814a6b213c488f1102ad684d403ac3ed1036f1c13c07e54dfdec6b52"
+    }
+  ]
+}
