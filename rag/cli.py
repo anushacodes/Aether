@@ -23,7 +23,8 @@ from rag.corpus import (
 )
 from rag.embeddings import Embedder, embedding_manifest
 from rag.indexing import bulk_index_chunks, ensure_index, load_chunks
-from rag.models import ChunkRecord, SectionRecord, SubsetManifest
+from rag.models import ChunkRecord, SearchScope, SectionRecord, SubsetManifest
+from rag.retrieval import bm25_search
 from rag.search_store import check_search_store, create_search_client
 
 
@@ -45,6 +46,10 @@ def build_parser() -> argparse.ArgumentParser:
     search_operations.add_parser(
         "check", help="Check health, index/search a temporary document, then remove it"
     )
+    query = search_operations.add_parser("query", help="Retrieve original source passages")
+    query.add_argument("query")
+    query.add_argument("--guide", action="append", choices=("s3-userguide", "s3-api"))
+    query.add_argument("--corpus-id")
     embed = commands.add_parser(
         "embed", help="Embed chunk records through Bedrock with a disk cache"
     )
@@ -150,7 +155,15 @@ def main(argv: list[str] | None = None) -> int:
             print("Configuration valid (no network requests made).")
         elif args.command == "search":
             with create_search_client(config) as client:
-                result = check_search_store(client)
+                if args.operation == "check":
+                    result = check_search_store(client)
+                else:
+                    scope = SearchScope(
+                        permitted_guides=args.guide or ["s3-userguide", "s3-api"],
+                        corpus_id=args.corpus_id,
+                    )
+                    hits = bm25_search(client, config, args.query, scope)
+                    result = {"hits": [hit.model_dump(mode="json") for hit in hits]}
             print(json.dumps(result, indent=2))
         elif args.command == "embed":
             chunks = load_chunks(args.chunks)

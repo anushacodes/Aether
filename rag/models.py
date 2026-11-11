@@ -186,6 +186,16 @@ class RetrievedHit(Record):
     score: float = Field(allow_inf_nan=False)
 
 
+class SearchScope(Record):
+    """Authoritative restrictions passed separately from untrusted question text."""
+
+    permitted_guides: list[Guide] = Field(
+        default_factory=lambda: ["s3-userguide", "s3-api"], min_length=1
+    )
+    source_scope: Literal["general-purpose"] = "general-purpose"
+    corpus_id: Identifier | None = None
+
+
 class AnswerResult(Record):
     """Represent an answer outcome with inspectable evidence and bounded timings."""
 
