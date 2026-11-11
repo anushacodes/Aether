@@ -81,7 +81,7 @@ class SubsetManifest(Record):
     corpus_id: Identifier
     source_revision: Revision
     offset_unit: Literal["unicode-codepoints-utf8-no-newline-normalization"]
-    sections: list[SectionSelection] = Field(min_length=1)
+    sections: list[SectionSelection]
     exclusions: list[Nonempty]
 
     @model_validator(mode="after")

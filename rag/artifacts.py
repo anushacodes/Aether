@@ -26,7 +26,11 @@ def pipeline_fingerprint(config: PipelineConfig) -> str:
 
 
 def build_manifest(
-    config: PipelineConfig, chunks: list[ChunkRecord], *, has_vectors: bool
+    config: PipelineConfig,
+    chunks: list[ChunkRecord],
+    *,
+    has_vectors: bool,
+    corpus_id: str | None = None,
 ) -> dict[str, object]:
     """Tie the stored chunk identities to their pinned source snapshots and embedding space."""
     sources = {
@@ -35,7 +39,9 @@ def build_manifest(
     identity = {
         "schema_version": 1,
         "pipeline_fingerprint": pipeline_fingerprint(config),
-        "corpus_ids": sorted({chunk.corpus_id for chunk in chunks}),
+        "corpus_ids": sorted(
+            {chunk.corpus_id for chunk in chunks} | ({corpus_id} if corpus_id else set())
+        ),
         "chunk_ids": sorted(chunk.chunk_id for chunk in chunks),
         "sources": [sources[source_id] for source_id in sorted(sources)],
         "chunking": config.chunking.model_dump(mode="json"),

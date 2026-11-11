@@ -7,6 +7,7 @@ import json
 import math
 import sqlite3
 import threading
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from pathlib import Path
@@ -145,11 +146,19 @@ class Embedder:
             self.input_tokens += payload.get("inputTextTokenCount", 0)
         return vector
 
-    def embed_chunks(self, chunks: list[ChunkRecord]) -> dict[str, list[float]]:
+    def embed_chunks(
+        self, chunks: list[ChunkRecord], *, checkpoint: Callable[[], None] | None = None
+    ) -> dict[str, list[float]]:
         """Bound concurrency, deduplicate exact inputs, and preserve caller ordering."""
         inputs = list(dict.fromkeys(chunk.original_text for chunk in chunks))
+
+        def embed_checked(text: str) -> list[float]:
+            if checkpoint is not None:
+                checkpoint()
+            return self.embed_text(text)
+
         with ThreadPoolExecutor(max_workers=self.config.embedding.concurrency) as executor:
-            vectors = list(executor.map(self.embed_text, inputs))
+            vectors = list(executor.map(embed_checked, inputs))
         by_text = dict(zip(inputs, vectors, strict=True))
         return {chunk.chunk_id: by_text[chunk.original_text] for chunk in chunks}
 
