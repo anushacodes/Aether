@@ -1,9 +1,8 @@
-<!-- BEGIN:nextjs-agent-rules -->
+# Project guidance
 
-## This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
+- AWS S3 documentation RAG: Python/uv backend in `rag/`, Next.js frontend in `frontend/`.
+- Keep implementation minimal. Detailed plans and decisions belong in `docs/`, not this file.
+- Follow the [engineering rulebook](<docs/Python Engineering Rulebook — Agent Coding Standards.md>) for all coding work.
+- Follow `docs/aws_s3_rag_atomic_build_checklist.md`. Validate backend changes with `make check`; frontend changes with `npm --prefix frontend run build`.
+- Never commit or push without an explicit request for that specific action. A commit request does not authorize a push.
+- “Revert commits” means reset local history, preserving files unless asked to discard them; do not create a revert commit or force-push.
