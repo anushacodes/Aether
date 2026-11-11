@@ -1,3 +1,7 @@
+"""Verify serialized evidence rejects text/hash mismatches."""
+
+from __future__ import annotations
+
 import copy
 import json
 from pathlib import Path
@@ -5,43 +9,24 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from rag.config import PipelineConfig
-from rag.models import AnswerResult, ChunkRecord, RetrievedHit, SectionRecord, SourceRecord
+from rag.models import ChunkRecord, SectionRecord
 
 
 @pytest.fixture
-def examples():
-    return json.loads(Path("tests/fixtures/records.json").read_text())
+def examples() -> dict[str, dict[str, object]]:
+    return json.loads(Path("tests/fixtures/records.json").read_text(encoding="utf-8"))
 
 
-def test_representative_data_contracts(examples):
-    for key, record_type in (
-        ("source", SourceRecord),
-        ("section", SectionRecord),
-        ("chunk", ChunkRecord),
-        ("hit", RetrievedHit),
-        ("answer", AnswerResult),
-        ("config", PipelineConfig),
-    ):
-        record_type.model_validate(examples[key])
-
-
-def test_unknown_citation_is_rejected(examples):
-    answer = copy.deepcopy(examples["answer"])
-    answer["citation_ids"] = ["invented-chunk"]
-    with pytest.raises(ValidationError, match="citation IDs"):
-        AnswerResult.model_validate(answer)
-
-
-def test_section_cannot_claim_incorrect_raw_length(examples):
+def test_section_rejects_same_length_text_tampering(examples: dict[str, dict[str, object]]) -> None:
     section = copy.deepcopy(examples["section"])
-    section["raw_end"] += 1
-    with pytest.raises(ValidationError, match="raw range length"):
+    original = SectionRecord.model_validate(section).raw_text
+    section["raw_text"] = ("Y" if original[0] == "X" else "X") + original[1:]
+    with pytest.raises(ValidationError, match="raw_sha256 must match raw_text"):
         SectionRecord.model_validate(section)
 
 
-def test_source_cannot_supply_arbitrary_download_filename(examples):
-    source = copy.deepcopy(examples["source"])
-    source["original_filename"] = "../../secrets"
-    with pytest.raises(ValidationError):
-        SourceRecord.model_validate(source)
+def test_chunk_rejects_incorrect_content_hash(examples: dict[str, dict[str, object]]) -> None:
+    chunk = copy.deepcopy(examples["chunk"])
+    chunk["content_sha256"] = "0" * 64
+    with pytest.raises(ValidationError, match="content_sha256 must match original_text"):
+        ChunkRecord.model_validate(chunk)

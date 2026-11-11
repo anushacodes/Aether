@@ -1,5 +1,8 @@
 """Shared records. Raw offsets always address decoded, unmodified UTF-8 text."""
 
+from __future__ import annotations
+
+import hashlib
 from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
@@ -13,10 +16,14 @@ Duration = Annotated[float, Field(ge=0, allow_inf_nan=False)]
 
 
 class Record(BaseModel):
+    """Reject unrecognized fields at serialized-data boundaries."""
+
     model_config = ConfigDict(extra="forbid")
 
 
 class SourceRecord(Record):
+    """Identify the pinned source snapshot and its separate publisher reference."""
+
     source_id: Identifier
     guide: Guide
     revision: Revision
@@ -27,12 +34,15 @@ class SourceRecord(Record):
 
 
 class SourceManifest(Record):
+    """List unique, compatible source snapshots for one repository revision."""
+
     schema_version: Literal[1] = 1
     revision: Revision
     sources: list[SourceRecord] = Field(min_length=1)
 
     @model_validator(mode="after")
     def consistent_sources(self) -> Self:
+        """Require one identity and filename per source at the declared revision."""
         if len({s.source_id for s in self.sources}) != len(self.sources):
             raise ValueError("source_id values must be unique")
         if len({s.original_filename for s in self.sources}) != len(self.sources):
@@ -45,6 +55,8 @@ class SourceManifest(Record):
 
 
 class SectionSelection(Record):
+    """Select a source range using raw character offsets and a range hash."""
+
     section_id: Identifier
     source_id: Identifier
     heading_path: list[Nonempty] = Field(min_length=1)
@@ -56,12 +68,15 @@ class SectionSelection(Record):
 
     @model_validator(mode="after")
     def ordered_range(self) -> Self:
+        """Reject empty or reversed raw ranges."""
         if self.raw_end <= self.raw_start:
             raise ValueError("raw_end must be greater than raw_start")
         return self
 
 
 class SubsetManifest(Record):
+    """Define a reproducible corpus subset without overlapping source selections."""
+
     schema_version: Literal[1] = 1
     corpus_id: Identifier
     source_revision: Revision
@@ -71,6 +86,7 @@ class SubsetManifest(Record):
 
     @model_validator(mode="after")
     def unique_nonoverlapping_sections(self) -> Self:
+        """Validate selection identities and reject ambiguous overlapping evidence."""
         if len({s.section_id for s in self.sections}) != len(self.sections):
             raise ValueError("section_id values must be unique")
         ordered = sorted(self.sections, key=lambda s: (s.source_id, s.raw_start))
@@ -81,6 +97,8 @@ class SubsetManifest(Record):
 
 
 class SectionRecord(Record):
+    """Preserve selected source text beside its cleaned extraction result."""
+
     section_id: Identifier
     source_id: Identifier
     corpus_id: Identifier
@@ -96,14 +114,34 @@ class SectionRecord(Record):
 
     @model_validator(mode="after")
     def consistent_lineage(self) -> Self:
+        """Verify the selected raw text against its declared range, hash, and source."""
         if self.raw_end - self.raw_start != len(self.raw_text):
             raise ValueError("raw range length must equal raw_text character count")
         if self.source_id != self.provenance.source_id:
             raise ValueError("source_id must match provenance")
+        if hashlib.sha256(self.raw_text.encode("utf-8")).hexdigest() != self.raw_sha256:
+            raise ValueError("raw_sha256 must match raw_text")
+        return self
+
+
+class ExampleContinuation(Record):
+    """Identify the ordered fragments of one oversized source example."""
+
+    block_id: Identifier
+    part_index: int = Field(ge=1)
+    part_count: int = Field(ge=2)
+
+    @model_validator(mode="after")
+    def ordered_part(self) -> Self:
+        """Reject fragment positions outside the declared continuation count."""
+        if self.part_index > self.part_count:
+            raise ValueError("part_index must not exceed part_count")
         return self
 
 
 class ChunkRecord(Record):
+    """Carry exact evidence text, optional cleaned spans, and source provenance."""
+
     chunk_id: Identifier
     section_id: Identifier
     corpus_id: Identifier
@@ -114,15 +152,34 @@ class ChunkRecord(Record):
     section_raw_end: int = Field(gt=0)
     chunker_version: Nonempty
     provenance: SourceRecord
+    text_start: int | None = Field(default=None, ge=0)
+    text_end: int | None = Field(default=None, gt=0)
+    content_sha256: Digest | None = None
+    estimated_tokens: int | None = Field(default=None, gt=0)
+    continuations: list[ExampleContinuation] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def ordered_section_range(self) -> Self:
+        """Check the raw parent range and any supplied cleaned-text span or content hash."""
         if self.section_raw_end <= self.section_raw_start:
             raise ValueError("section raw range must be ordered")
+        if (self.text_start is None) != (self.text_end is None):
+            raise ValueError("cleaned text offsets must be supplied together")
+        if self.text_start is not None and self.text_end is not None:
+            if self.text_end - self.text_start != len(self.original_text):
+                raise ValueError(
+                    "cleaned text range length must equal original_text character count"
+                )
+        if self.content_sha256 is not None:
+            content_hash = hashlib.sha256(self.original_text.encode("utf-8")).hexdigest()
+            if self.content_sha256 != content_hash:
+                raise ValueError("content_sha256 must match original_text")
         return self
 
 
 class RetrievedHit(Record):
+    """Normalize an individual retriever's rank and method-specific score."""
+
     chunk: ChunkRecord
     method: Literal["bm25", "vector", "hybrid"]
     rank: int = Field(ge=1)
@@ -130,6 +187,8 @@ class RetrievedHit(Record):
 
 
 class AnswerResult(Record):
+    """Represent an answer outcome with inspectable evidence and bounded timings."""
+
     answer: str
     citation_ids: list[Identifier]
     status: Literal["answered", "insufficient_evidence", "failed"]
@@ -138,6 +197,7 @@ class AnswerResult(Record):
 
     @model_validator(mode="after")
     def known_citations(self) -> Self:
+        """Validate citation membership without claiming to verify factual support."""
         known = {chunk.chunk_id for chunk in self.evidence}
         if not set(self.citation_ids).issubset(known):
             raise ValueError("citation IDs must exist in the supplied evidence")
