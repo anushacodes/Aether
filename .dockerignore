@@ -1,0 +1,21 @@
+# Send only application build inputs to Docker.
+**
+!pyproject.toml
+!uv.lock
+!config.toml
+!rag/
+!rag/**
+!data/
+!data/manifests/
+!data/manifests/**
+!frontend/
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/tsconfig.json
+!frontend/next.config.ts
+!frontend/app/
+!frontend/app/**
+**/__pycache__/
+**/*.pyc
+**/.env*
+**/*.pem
