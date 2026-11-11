@@ -6,8 +6,9 @@ COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev --no-install-project
 COPY rag ./rag
+# Source-only edits must rebuild the project wheel even when uv's metadata cache is unchanged.
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev --no-editable
+    uv sync --locked --no-dev --no-editable --reinstall-package aws-s3-knowledge-engine
 
 FROM python:3.12.15-slim-bookworm@sha256:6a0e06f5ba0b373d051aabd3fffb9b873f27f9a2a3a14bcbe37dee6f0e3bbc70 AS runtime
 WORKDIR /app
@@ -28,4 +29,4 @@ COPY config.toml ./
 COPY data/manifests ./manifests
 USER rag
 EXPOSE 8000
-CMD ["uvicorn", "rag.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "rag.api.app:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]
