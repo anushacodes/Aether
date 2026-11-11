@@ -31,6 +31,7 @@ from rag.embeddings import Embedder, embedding_manifest
 from rag.enriched_index import build_enriched_index, load_enriched_inputs
 from rag.enrichment import run_enrichment
 from rag.eval.answers import AnswerBinding, prepare_answers
+from rag.eval.comparison import compare_retrieval_runs, render_comparison_markdown
 from rag.eval.dataset import load_dataset
 from rag.eval.pooling import pool_candidates
 from rag.eval.runs import run_retrieval_evaluation
@@ -119,6 +120,14 @@ def build_parser() -> argparse.ArgumentParser:
     pool.add_argument("--split", choices=("development", "held_out"), default="development")
     pool.add_argument("--output", type=Path, required=True)
     pool.add_argument("--allow-drafts", action="store_true")
+    compare = eval_operations.add_parser(
+        "compare", help="Compare aligned saved retrieval runs without calling services"
+    )
+    compare.add_argument("--dataset", type=Path, default=Path("data/eval/pilot.json"))
+    compare.add_argument("--run", type=Path, action="append", required=True)
+    compare.add_argument("--split", choices=("development", "held_out"), default="development")
+    compare.add_argument("--output", type=Path, required=True)
+    compare.add_argument("--allow-drafts", action="store_true")
     for name, help_text in (
         ("prepare-answers", "Validate saved answer samples without calling a judge"),
         ("judge", "Run optional Ragas metrics on reviewed saved answers"),
@@ -394,6 +403,17 @@ def _run_evaluation(args: argparse.Namespace, config: PipelineConfig) -> int:
         with args.output.open("x", encoding="utf-8") as stream:
             stream.write(serialized + "\n")
         print(json.dumps({"status": pool["status"], "output": str(args.output)}, indent=2))
+        return 0
+    if args.operation == "compare":
+        report = compare_retrieval_runs(
+            dataset, args.run, args.split, allow_drafts=args.allow_drafts
+        )
+        serialized = json.dumps(report, indent=2, ensure_ascii=False, allow_nan=False)
+        markdown = render_comparison_markdown(report)
+        args.output.mkdir(parents=True, exist_ok=False)
+        (args.output / "comparison.json").write_text(serialized + "\n", encoding="utf-8")
+        (args.output / "comparison.md").write_text(markdown, encoding="utf-8")
+        print(json.dumps({"quality_status": report["quality_status"], "output": str(args.output)}))
         return 0
     sections = [
         SectionRecord.model_validate_json(line)
