@@ -6,6 +6,7 @@ from collections.abc import Iterator
 from unittest.mock import Mock
 
 import pytest
+from botocore.exceptions import ClientError, EndpointConnectionError, ReadTimeoutError
 from fastapi.testclient import TestClient
 from opensearchpy import TransportError
 
@@ -47,3 +48,63 @@ def test_stream_validation_failure_sends_terminal_error_without_done(
     assert "invalid_citations" in response.text
     assert "event: done" not in response.text
     assert "Private provider details" not in response.text
+
+
+def test_json_and_stream_classify_expected_provider_failures_consistently(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    failure: Exception = RuntimeError("unassigned")
+
+    def failed_stream(*args: object) -> Iterator[StreamEvent]:
+        yield StreamEvent("token", {"text": "provisional"})
+        raise failure
+
+    retrieval = Mock()
+    monkeypatch.setattr("rag.api.app.retrieve", retrieval)
+    monkeypatch.setattr("rag.api.stream.stream_answer", failed_stream)
+    application = create_app(PipelineConfig())
+    application.dependency_overrides[get_search_client] = lambda: Mock()
+    with TestClient(application) as client:
+        for failure, status, code in [
+            (ReadTimeoutError(endpoint_url="private-provider-details"), 504, "request_timeout"),
+            (
+                ClientError(
+                    {
+                        "Error": {
+                            "Code": "ThrottlingException",
+                            "Message": "private-provider-details",
+                        }
+                    },
+                    "Converse",
+                ),
+                429,
+                "model_throttled",
+            ),
+            (
+                ClientError(
+                    {
+                        "Error": {
+                            "Code": "AccessDeniedException",
+                            "Message": "private-provider-details",
+                        }
+                    },
+                    "Converse",
+                ),
+                502,
+                "model_request_failed",
+            ),
+            (
+                EndpointConnectionError(endpoint_url="private-provider-details"),
+                503,
+                "model_unavailable",
+            ),
+            (TransportError(503, "private-provider-details"), 503, "search_unavailable"),
+            (ValueError("private-provider-details"), 502, "invalid_dependency_response"),
+        ]:
+            retrieval.side_effect = failure
+            response = client.post("/retrieval", json={"query": "object versions"})
+            assert response.status_code == status and response.json()["detail"]["code"] == code
+            stream = client.post("/search/stream", json={"query": "object versions"})
+            assert stream.status_code == 200 and "event: error" in stream.text
+            assert code in stream.text and "event: done" not in stream.text
+            assert "private-provider-details" not in response.text + stream.text

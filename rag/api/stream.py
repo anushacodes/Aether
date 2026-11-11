@@ -4,48 +4,30 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
 import threading
 from collections.abc import AsyncIterator
 from concurrent.futures import CancelledError, TimeoutError
 from time import monotonic
 
 from fastapi import Request
-from opensearchpy import OpenSearch, TransportError
+from opensearchpy import OpenSearch
 from starlette.responses import StreamingResponse
 
+from rag.api.errors import dependency_failure
 from rag.api.limits import SearchLease
-from rag.config import ConfigurationError, PipelineConfig
-from rag.generation import CitationValidationError
+from rag.api.observability import observation
+from rag.config import PipelineConfig
 from rag.models import SearchRequest
-from rag.streaming import GenerationStreamError, StreamEvent, stream_answer
-from rag.workflow_limits import WorkflowBudgetError, WorkflowDeadlineError
+from rag.streaming import StreamEvent, stream_answer
 
 QUEUE_CAPACITY = 8
 POLL_SECONDS = 0.25
 HEARTBEAT_SECONDS = 10
-logger = logging.getLogger(__name__)
 
 
 def encode_event(event: StreamEvent) -> str:
     """Encode one complete SSE frame without allowing source text to create event headers."""
     return f"event: {event.event}\ndata: {json.dumps(event.data, ensure_ascii=False)}\n\n"
-
-
-def _error_code(error: Exception) -> str:
-    if isinstance(error, WorkflowDeadlineError):
-        return "request_timeout"
-    if isinstance(error, WorkflowBudgetError):
-        return "workflow_budget_exhausted"
-    if isinstance(error, ConfigurationError):
-        return "model_not_configured"
-    if isinstance(error, CitationValidationError):
-        return "invalid_citations"
-    if isinstance(error, GenerationStreamError):
-        return "incomplete_generation"
-    if isinstance(error, TransportError):
-        return "search_unavailable"
-    return "generation_failed"
 
 
 def streaming_response(
@@ -61,6 +43,7 @@ def streaming_response(
     cancelled = threading.Event()
     deadline = monotonic() + config.api.stream_timeout_seconds
     request_id = request.state.request_id
+    current = observation(request)
 
     def send(event: StreamEvent | None) -> bool:
         if cancelled.is_set() or loop.is_closed():
@@ -85,24 +68,37 @@ def streaming_response(
                 return False
 
     def produce() -> None:
+        started = monotonic()
+        outcome = "stopped"
+        error_code = None
         try:
             events = stream_answer(client, config, body, cancelled)
             try:
                 for event in events:
+                    if event.event == "done" and current is not None:
+                        current.record_data(event.data)
                     if not send(event):
                         break
+                    if event.event == "done":
+                        outcome = "terminal_result_queued"
             finally:
                 events.close()
         except Exception as error:
             # A worker failure must become a terminal event, never a false completed answer.
-            logger.error(
-                "search stream failed",
-                extra={"request_id": request_id, "error_type": type(error).__name__},
-            )
-            send(StreamEvent("error", {"code": _error_code(error), "request_id": request_id}))
+            failure = dependency_failure(error)
+            error_code = failure[1] if failure is not None else "generation_failed"
+            outcome = "failed"
+            send(StreamEvent("error", {"code": error_code, "request_id": request_id}))
         finally:
             send(None)
             lease.close()
+            if current is not None:
+                current.emit(
+                    "search_worker",
+                    lifecycle_outcome=outcome,
+                    error_code=error_code,
+                    elapsed_ms=(monotonic() - started) * 1000,
+                )
 
     loop.run_in_executor(None, produce)
 
