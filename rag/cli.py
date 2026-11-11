@@ -22,7 +22,7 @@ from rag.corpus import (
     write_jsonl,
 )
 from rag.embeddings import Embedder, embedding_manifest
-from rag.indexing import ensure_index
+from rag.indexing import bulk_index_chunks, ensure_index, load_chunks
 from rag.models import ChunkRecord, SectionRecord, SubsetManifest
 from rag.search_store import check_search_store, create_search_client
 
@@ -53,6 +53,11 @@ def build_parser() -> argparse.ArgumentParser:
     index = commands.add_parser("index", help="Create and populate the configured corpus index")
     index_operations = index.add_subparsers(dest="operation", required=True)
     index_operations.add_parser("create", help="Create the index or verify embedding compatibility")
+    build = index_operations.add_parser("build", help="Index chunks with stable source identities")
+    build.add_argument("--chunks", type=Path, default=Path("data/processed/pilot-chunks.jsonl"))
+    build.add_argument(
+        "--with-embeddings", action="store_true", help="Generate/reuse Bedrock vectors"
+    )
     corpus = commands.add_parser(
         "corpus", help="Fetch, inspect, and extract pinned source snapshots"
     )
@@ -148,11 +153,7 @@ def main(argv: list[str] | None = None) -> int:
                 result = check_search_store(client)
             print(json.dumps(result, indent=2))
         elif args.command == "embed":
-            chunks = [
-                ChunkRecord.model_validate_json(line)
-                for line in args.chunks.read_bytes().splitlines()
-                if line.strip()
-            ]
+            chunks = load_chunks(args.chunks)
             embedder = Embedder(config, create_bedrock_client(config))
             embedder.embed_chunks(chunks)
             write_jsonl(args.output, embedding_manifest(chunks, config))
@@ -169,8 +170,22 @@ def main(argv: list[str] | None = None) -> int:
             )
         elif args.command == "index":
             with create_search_client(config) as client:
-                created = ensure_index(client, config)
-            print(json.dumps({"index": config.index.name, "created": created}, indent=2))
+                if args.operation == "create":
+                    result = {"index": config.index.name, "created": ensure_index(client, config)}
+                else:
+                    chunks = load_chunks(args.chunks)
+                    vectors = None
+                    if args.with_embeddings:
+                        vectors = Embedder(config, create_bedrock_client(config)).embed_chunks(
+                            chunks
+                        )
+                    count = bulk_index_chunks(client, config, chunks, vectors)
+                    result = {
+                        "index": config.index.name,
+                        "indexed": count,
+                        "vectors": vectors is not None,
+                    }
+            print(json.dumps(result, indent=2))
         else:
             _run_corpus(args, config)
     except TransportError as error:
