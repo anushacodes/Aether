@@ -26,6 +26,7 @@ export interface SearchRequest {
   query: string;
   mode: RetrievalMode;
   scope: { permitted_guides: Guide[]; source_scope: "general-purpose" };
+  workflow?: boolean;
 }
 
 export interface RetrievalResult {
@@ -41,10 +42,26 @@ export interface AnswerResult {
   evidence: Chunk[];
   timings_ms: Record<string, number>;
   usage_tokens: Record<string, number>;
+  workflow?: {
+    snapshot_index: string;
+    retrieval_passes: number;
+    model_calls: number;
+    assessment_prompt_version: string;
+    steps: {
+      retrieval_pass: number;
+      query: string;
+      decision: "answer" | "retry" | "insufficient";
+      missing_evidence: string;
+      context_chunk_ids?: string[];
+    }[];
+  } | null;
 }
 
 export type SearchEvent =
-  | { event: "status"; data: { stage: "retrieval" | "generation" } }
+  | {
+      event: "status";
+      data: { stage: "retrieval" | "assessment" | "refinement" | "generation" };
+    }
   | { event: "sources"; data: { evidence: Chunk[] } }
   | { event: "token"; data: { text: string } }
   | { event: "done"; data: AnswerResult }
@@ -132,6 +149,34 @@ function answer(value: unknown): AnswerResult {
     !numbers(result.usage_tokens)
   )
     throw new Error("invalid_response");
+  if (result.workflow !== undefined && result.workflow !== null) {
+    const report = object(result.workflow);
+    if (
+      typeof report.snapshot_index !== "string" ||
+      typeof report.assessment_prompt_version !== "string" ||
+      !Number.isInteger(report.retrieval_passes) ||
+      Number(report.retrieval_passes) < 0 ||
+      Number(report.retrieval_passes) > 2 ||
+      !Number.isInteger(report.model_calls) ||
+      Number(report.model_calls) < 0 ||
+      Number(report.model_calls) > 5 ||
+      !Array.isArray(report.steps) ||
+      report.steps.length > 2
+    )
+      throw new Error("invalid_response");
+    for (const item of report.steps) {
+      const step = object(item);
+      if (
+        !Number.isInteger(step.retrieval_pass) ||
+        Number(step.retrieval_pass) < 1 ||
+        Number(step.retrieval_pass) > 2 ||
+        typeof step.query !== "string" ||
+        typeof step.missing_evidence !== "string" ||
+        !["answer", "retry", "insufficient"].includes(String(step.decision))
+      )
+        throw new Error("invalid_response");
+    }
+  }
   return result as unknown as AnswerResult;
 }
 
@@ -151,7 +196,10 @@ function parseEvent(frame: string): SearchEvent | null {
     return { event: name, data: { text: payload.text } };
   if (
     name === "status" &&
-    (payload.stage === "retrieval" || payload.stage === "generation")
+    (payload.stage === "retrieval" ||
+      payload.stage === "assessment" ||
+      payload.stage === "refinement" ||
+      payload.stage === "generation")
   ) {
     return { event: name, data: { stage: payload.stage } };
   }

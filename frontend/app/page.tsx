@@ -15,11 +15,14 @@ import {
   type Guide,
   type RetrievalMode,
   type SearchRequest,
+  type AnswerResult,
 } from "./search-api";
 
 type Phase =
   | "idle"
   | "retrieval"
+  | "assessment"
+  | "refinement"
   | "generation"
   | "complete"
   | "sources"
@@ -35,6 +38,7 @@ interface Result {
   timings: Record<string, number>;
   error?: string;
   requestId?: string;
+  workflow?: AnswerResult["workflow"];
 }
 
 const INITIAL: Result = {
@@ -71,6 +75,9 @@ const MESSAGES: Record<string, string> = {
   incomplete_generation:
     "The model stopped before completing an answer. Any partial text is unverified. Try again.",
   invalid_response: "The service returned an unreadable response. Try again.",
+  invalid_dependency_response: "The model response could not be validated. Review the sources or try again.",
+  workflow_budget_exhausted:
+    "The evidence check reached its model-call limit. Try answering without the extra check, or use Find sources.",
 };
 
 function answerWithCitations(
@@ -154,6 +161,7 @@ export default function Home() {
   const [question, setQuestion] = useState("");
   const [guides, setGuides] = useState<Guide[]>(["s3-userguide", "s3-api"]);
   const [mode, setMode] = useState<RetrievalMode>("bm25");
+  const [workflow, setWorkflow] = useState(false);
   const [result, setResult] = useState<Result>(INITIAL);
   const [selected, setSelected] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -175,6 +183,7 @@ export default function Home() {
       query: question.trim(),
       mode,
       scope: { permitted_guides: guides, source_scope: "general-purpose" },
+      workflow: !sourcesOnly && workflow,
     };
     const active = new AbortController();
     controller.current = active;
@@ -196,6 +205,8 @@ export default function Home() {
         }));
       } else {
         await streamAnswer(request, active.signal, (event) => {
+          if (event.event === "sources" || event.event === "done")
+            setSelected(0);
           setResult((current) => {
             if (event.event === "status")
               return { ...current, phase: event.data.stage };
@@ -223,6 +234,7 @@ export default function Home() {
               evidence: answer.evidence,
               citations: answer.citation_ids,
               timings: answer.timings_ms,
+              workflow: answer.workflow,
               error:
                 answer.status === "failed" ? "invalid_citations" : undefined,
             };
@@ -259,6 +271,8 @@ export default function Home() {
   const labels: Record<Phase, string> = {
     idle: "Ready for your question",
     retrieval: "Finding supporting passages…",
+    assessment: "Checking the available evidence…",
+    refinement: "Trying a more focused search…",
     generation: "Writing answer…",
     complete: "Answer complete",
     sources: result.evidence.length
@@ -344,6 +358,18 @@ export default function Home() {
                 <option value="vector">Vector · requires embeddings</option>
               </select>
             </label>
+            <div className="workflow-option">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={workflow}
+                  disabled={busy}
+                  onChange={(event) => setWorkflow(event.target.checked)}
+                />
+                Check evidence before answering
+              </label>
+              <p>May search twice and use extra model calls.</p>
+            </div>
           </div>
           <div className="form-footer">
             <p id="question-help">
@@ -429,9 +455,13 @@ export default function Home() {
               </button>
             </div>
           )}
-          {result.phase === "retrieval" && (
+          {["retrieval", "assessment", "refinement"].includes(result.phase) && (
             <p className="muted">
-              Searching the selected guides for original passages.
+              {result.phase === "retrieval"
+                ? "Searching the selected guides for original passages."
+                : result.phase === "assessment"
+                  ? "Checking whether these passages cover your question."
+                  : "Keeping your original question and guides while adding focused search terms."}
             </p>
           )}
           {result.phase === "generation" && (
@@ -490,6 +520,13 @@ export default function Home() {
             <p className="answer-note">
               Citation IDs checked against the supplied passages. Review the
               sources to assess the answer.
+            </p>
+          )}
+          {result.workflow && (
+            <p className="source-note">
+              {result.workflow.retrieval_passes}{" "}
+              {result.workflow.retrieval_passes === 1 ? "search" : "searches"} ·{" "}
+              {result.workflow.model_calls} model calls
             </p>
           )}
         </section>

@@ -17,6 +17,26 @@ const completed = {
   evidence: [chunk],
   timings_ms: { retrieval_total: 12 },
   usage_tokens: { generation_input: 10, generation_output: 5 },
+  workflow: {
+    snapshot_index: "test-snapshot",
+    retrieval_passes: 2,
+    model_calls: 3,
+    assessment_prompt_version: "evidence-assessment-v1",
+    steps: [
+      {
+        retrieval_pass: 1,
+        query: "versioning",
+        decision: "retry",
+        missing_evidence: "missing_context",
+      },
+      {
+        retrieval_pass: 2,
+        query: "versioning delete marker",
+        decision: "answer",
+        missing_evidence: "none",
+      },
+    ],
+  },
 };
 const frame = (event, data) =>
   `event: ${event}\r\ndata: ${JSON.stringify(data)}\r\n\r\n`;
@@ -36,17 +56,19 @@ function body(text, byteSize = 1) {
 test("fragmented UTF-8 and CRLF frames preserve sources and require a validated terminal result", async () => {
   const wire =
     ": keepalive\r\n\r\n" +
+    frame("status", { stage: "assessment" }) +
+    frame("status", { stage: "refinement" }) +
     frame("sources", { evidence: [chunk] }) +
     frame("token", { text: "A café’s object" }) +
     frame("done", completed);
   const events = await Array.fromAsync(readSearchEvents(body(wire)));
   assert.deepEqual(
     events.map((event) => event.event),
-    ["sources", "token", "done"],
+    ["status", "status", "sources", "token", "done"],
   );
-  assert.equal(events[1].data.text, "A café’s object");
-  assert.equal(events[0].data.evidence[0].original_text, chunk.original_text);
-  assert.deepEqual(events[2].data, completed);
+  assert.equal(events[3].data.text, "A café’s object");
+  assert.equal(events[2].data.evidence[0].original_text, chunk.original_text);
+  assert.deepEqual(events[4].data, completed);
 });
 
 test("a terminal error cancels the reader and cannot be followed by success", async () => {

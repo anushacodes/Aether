@@ -192,6 +192,15 @@ input[type="checkbox"] {
   color: var(--muted);
   font-size: 0.8rem;
 }
+.workflow-option {
+  align-self: center;
+  max-width: 23rem;
+}
+.workflow-option p {
+  margin: 0.1rem 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
 select {
   min-height: 2.75rem;
   max-width: 100%;
