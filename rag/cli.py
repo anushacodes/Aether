@@ -13,6 +13,7 @@ from botocore.exceptions import BotoCoreError, ClientError
 from opensearchpy import TransportError
 
 from rag import __version__
+from rag.artifacts import build_manifest, save_answer_run, save_build_manifest
 from rag.aws_clients import create_bedrock_client
 from rag.chunking import chunk_inventory, chunk_section
 from rag.config import ChunkingConfig, PipelineConfig, load_config
@@ -61,6 +62,9 @@ def build_parser() -> argparse.ArgumentParser:
     _add_question_arguments(query)
     ask = commands.add_parser("ask", help="Answer from retrieved passages with source citations")
     _add_question_arguments(ask)
+    ask.add_argument(
+        "--save-run", type=Path, help="Save question and exact answer context in a new directory"
+    )
     evaluation = commands.add_parser(
         "eval", help="Validate and evaluate independent quality labels"
     )
@@ -101,6 +105,7 @@ def build_parser() -> argparse.ArgumentParser:
     build.add_argument(
         "--with-embeddings", action="store_true", help="Generate/reuse Bedrock vectors"
     )
+    build.add_argument("--manifest", type=Path, default=Path("data/processed/pilot-build.json"))
     corpus = commands.add_parser(
         "corpus", help="Fetch, inspect, and extract pinned source snapshots"
     )
@@ -268,6 +273,8 @@ def main(argv: list[str] | None = None) -> int:
             )
             with create_search_client(config) as client:
                 answer = answer_question(client, config, request)
+            if args.save_run is not None:
+                save_answer_run(args.save_run, request, answer, config)
             print(answer.model_dump_json(indent=2))
             return 1 if answer.status == "failed" else 0
         elif args.command == "embed":
@@ -298,6 +305,8 @@ def main(argv: list[str] | None = None) -> int:
                         with closing(create_bedrock_client(config)) as runtime:
                             vectors = Embedder(config, runtime).embed_chunks(chunks)
                     count = bulk_index_chunks(client, config, chunks, vectors)
+                    manifest = build_manifest(config, chunks, has_vectors=vectors is not None)
+                    save_build_manifest(args.manifest, manifest)
                     result = {
                         "index": config.index.name,
                         "indexed": count,
