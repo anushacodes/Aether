@@ -81,3 +81,24 @@ jobs:
       - name: Remove ephemeral services and data
         if: always()
         run: docker compose down --volumes
+
+  application-images:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+        with:
+          persist-credentials: false
+      - run: docker compose -f compose.app.yaml build api frontend
+      - name: Prepare Linux memory maps
+        run: sudo sysctl -w vm.max_map_count=262144
+      - run: docker compose -f compose.app.yaml up -d --no-build --wait --wait-timeout 180
+      - run: docker compose -f compose.app.yaml exec -T api s3-rag corpus fetch
+      - run: docker compose -f compose.app.yaml exec -T api s3-rag jobs submit --key ci-pilot --base-revision none
+      - run: python3 tests/check_local_app.py
+      - name: Application logs on failure
+        if: failure()
+        run: docker compose -f compose.app.yaml logs --no-color
+      - name: Remove ephemeral application services and data
+        if: always()
+        run: docker compose -f compose.app.yaml down --volumes
