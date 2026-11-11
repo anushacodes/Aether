@@ -22,6 +22,7 @@ ENV_FIELDS = {
     "RAG_EMBEDDING_DIMENSIONS": ("models", "embedding_dimensions"),
     "RAG_GENERATION_MODEL_ID": ("models", "generation_model_id"),
     "RAG_EVALUATOR_MODEL_ID": ("evaluation", "judge_model_id"),
+    "RAG_ENRICHMENT_MODEL_ID": ("enrichment", "model_id"),
     "RAG_SEARCH_INDEX": ("index", "name"),
     "RAG_ADMIN_TOKEN": ("ingestion", "admin_token"),
     "RAG_ALLOWED_ORIGINS": ("api", "allowed_origins"),
@@ -149,6 +150,19 @@ class EvaluationConfig(Record):
     cache_path: Path = Path("data/cache/evaluator.sqlite3")
 
 
+class EnrichmentConfig(Record):
+    """Bound a separate metadata experiment without changing source evidence."""
+
+    model_id: str | None = None
+    cache_path: Path = Path("data/cache/enrichment.sqlite3")
+    max_chunks: int = Field(default=10, ge=1, le=500)
+    max_model_calls: int = Field(default=20, ge=1, le=500)
+    max_output_tokens: int = Field(default=768, ge=128, le=2048)
+    max_input_characters: int = Field(default=20_000, ge=1, le=50_000)
+    timeout_seconds: float = Field(default=120, ge=1, le=3600, allow_inf_nan=False)
+    repair_attempts: Literal[0, 1] = 1
+
+
 class PipelineConfig(Record):
     """The resolved configuration passed explicitly to each pipeline stage."""
 
@@ -164,6 +178,7 @@ class PipelineConfig(Record):
     workflow: WorkflowConfig = Field(default_factory=WorkflowConfig)
     cloud: CloudConfig = Field(default_factory=CloudConfig)
     evaluation: EvaluationConfig = Field(default_factory=EvaluationConfig)
+    enrichment: EnrichmentConfig = Field(default_factory=EnrichmentConfig)
     opensearch_url: HttpUrl = HttpUrl("http://localhost:9200")
 
     def require_cloud_settings(

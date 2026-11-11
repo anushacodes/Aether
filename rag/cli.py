@@ -28,6 +28,7 @@ from rag.corpus import (
     write_jsonl,
 )
 from rag.embeddings import Embedder, embedding_manifest
+from rag.enrichment import run_enrichment
 from rag.eval.answers import AnswerBinding, prepare_answers
 from rag.eval.dataset import load_dataset
 from rag.eval.pooling import pool_candidates
@@ -155,6 +156,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     embed.add_argument("--chunks", type=Path, default=Path("data/processed/pilot-chunks.jsonl"))
     embed.add_argument("--output", type=Path, default=Path("data/processed/pilot-embeddings.jsonl"))
+    enrich = commands.add_parser("enrich", help="Prepare unreviewed metadata for explicit chunks")
+    enrich.add_argument("--chunks", type=Path, default=Path("data/processed/pilot-chunks.jsonl"))
+    enrich.add_argument(
+        "--chunk-id", action="append", help="Select an exact ID; repeat to select more"
+    )
+    enrich.add_argument("--output", type=Path, required=True, help="New experiment directory")
     index = commands.add_parser("index", help="Create and populate the configured corpus index")
     index_operations = index.add_subparsers(dest="operation", required=True)
     index_operations.add_parser("create", help="Create the index or verify embedding compatibility")
@@ -488,6 +495,16 @@ def main(argv: list[str] | None = None) -> int:
                 save_answer_run(args.save_run, request, answer, config)
             print(answer.model_dump_json(indent=2))
             return 1 if answer.status == "failed" else 0
+        elif args.command == "enrich":
+            chunks = load_chunks(args.chunks)
+            if args.chunk_id is not None:
+                selected = set(args.chunk_id)
+                if len(selected) != len(args.chunk_id) or selected - {c.chunk_id for c in chunks}:
+                    raise ValueError("Select distinct chunk IDs present in the input")
+                chunks = [chunk for chunk in chunks if chunk.chunk_id in selected]
+            summary = run_enrichment(config, chunks, args.output)
+            print(json.dumps(summary | {"output": str(args.output)}, indent=2))
+            return 1 if summary["outcomes"].get("content_only", 0) else 0
         elif args.command == "embed":
             chunks = load_chunks(args.chunks)
             with closing(create_bedrock_client(config)) as runtime:
