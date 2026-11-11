@@ -1,17 +1,18 @@
 """Authenticate local corpus administration before reading state or accepting durable work."""
 
 import hmac
+import sqlite3
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Path, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from opensearchpy import OpenSearch, TransportError
 
 from rag.config import ConfigurationError, PipelineConfig
 from rag.ingestion import ingestion_catalog, submit_ingestion
-from rag.jobs import IngestionJob, IngestionRequest, JobConflict, JobStore
+from rag.jobs import IngestionJob, IngestionRequest, JobConflict, JobPage, JobStore
 
 security = HTTPBearer(auto_error=False, scheme_name="LocalAdministrator")
 JobId = Annotated[str, Path(pattern=r"^[0-9a-f]{32}$")]
@@ -31,6 +32,8 @@ def _errors() -> Iterator[None]:
         raise HTTPException(503, detail={"code": "search_unavailable"}) from error
     except OSError as error:
         raise HTTPException(503, detail={"code": "source_files_unavailable"}) from error
+    except sqlite3.Error as error:
+        raise HTTPException(503, detail={"code": "job_state_unavailable"}) from error
     except ValueError as error:
         raise HTTPException(400, detail={"code": "invalid_ingestion_inputs"}) from error
 
@@ -57,7 +60,8 @@ def create_ingestion_router(
             )
 
     def get_store(_: Annotated[None, Depends(require_admin)]) -> JobStore:
-        return JobStore(config.publication.state_path)
+        with _errors():
+            return JobStore(config.publication.state_path)
 
     router = APIRouter(
         prefix="/ingestion",
@@ -70,6 +74,16 @@ def create_ingestion_router(
         """Expose approved manifest identifiers and the base revision needed for a mutation."""
         with _errors():
             return ingestion_catalog(client, config)
+
+    @router.get("", response_model=JobPage)
+    def jobs(
+        store: Annotated[JobStore, Depends(get_store)],
+        limit: Annotated[int, Query(ge=1, le=50)] = 20,
+        before: Annotated[int | None, Query(ge=1, le=9_223_372_036_854_775_807)] = None,
+    ) -> JobPage:
+        """Inspect durable jobs without requiring an ID from a previous browser session."""
+        with _errors():
+            return store.list_page(limit=limit, before=before)
 
     @router.post("", response_model=IngestionJob, status_code=202)
     def submit(

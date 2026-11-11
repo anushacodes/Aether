@@ -82,6 +82,13 @@ class IngestionJob(Record):
     snapshot_id: str | None = None
 
 
+class JobPage(Record):
+    """Bound newest-first inspection using a durable submission-sequence cursor."""
+
+    jobs: list[IngestionJob]
+    next_before: int | None = Field(default=None, ge=1)
+
+
 def request_hash(request: IngestionRequest) -> str:
     """A repeated key must preserve the caller's accepted mutation, including its base."""
     return hashlib.sha256(request.model_dump_json().encode("utf-8")).hexdigest()
@@ -117,6 +124,21 @@ class JobStore:
                 "SELECT record_json FROM ingestion_jobs WHERE job_id = ?", (job_id,)
             ).fetchone()
         return IngestionJob.model_validate_json(row[0]) if row else None
+
+    def list_page(self, *, limit: int = 20, before: int | None = None) -> JobPage:
+        """Keep later submissions from shifting older pages; expose no captured inputs or keys."""
+        if not 1 <= limit <= 50 or (before is not None and before < 1):
+            raise ValueError("Invalid job page bounds")
+        with closing(sqlite3.connect(self.path, timeout=30)) as connection:
+            rows = connection.execute(
+                "SELECT sequence, record_json FROM ingestion_jobs "
+                "WHERE (? IS NULL OR sequence < ?) ORDER BY sequence DESC LIMIT ?",
+                (before, before, limit + 1),
+            ).fetchall()
+        return JobPage(
+            jobs=[IngestionJob.model_validate_json(row[1]) for row in rows[:limit]],
+            next_before=rows[limit - 1][0] if len(rows) > limit else None,
+        )
 
     def existing(self, key: str, request: IngestionRequest) -> IngestionJob | None:
         """Return accepted intent even if its catalog has subsequently changed."""
